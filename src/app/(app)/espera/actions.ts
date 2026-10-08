@@ -2,6 +2,7 @@
 
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
+import { getAdmin } from "@/lib/admin";
 import { db, friendly } from "@/lib/auth";
 import { waitSchema } from "@/lib/waitlist";
 
@@ -19,8 +20,10 @@ export async function addToWaitList(_prev: WaitState, formData: FormData): Promi
   const parsed = read(formData);
   if (!parsed.success) return { error: parsed.error.issues[0].message };
   try {
+    const me = await getAdmin();
+    if (!me?.studioId) return { error: "Sessão expirada. Entre novamente." };
     const supabase = await db();
-    const { error } = await supabase.from("wait_list").insert(parsed.data);
+    const { error } = await supabase.from("wait_list").insert({ ...parsed.data, studio_id: me.studioId });
     if (error) return { error: friendly(error) };
   } catch (e) {
     return { error: (e as Error).message };

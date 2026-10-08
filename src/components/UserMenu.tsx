@@ -4,7 +4,7 @@ import { useEffect, useRef, useState } from "react";
 import { signOut } from "@/app/login/actions";
 import { Icon } from "./Icon";
 
-export function UserMenu({ name, email, initials }: { name: string; email: string; initials: string }) {
+export function UserMenu({ name, email, initials, role }: { name: string; email: string; initials: string; role: "admin" | "instructor" }) {
   const [open, setOpen] = useState(false);
   const ref = useRef<HTMLDivElement>(null);
 
@@ -45,7 +45,7 @@ export function UserMenu({ name, email, initials }: { name: string; email: strin
         <span className="avatar">{initials}</span>
         <span className="me-text">
           <span>{name}</span>
-          <span className="t-small faint">Administração</span>
+          <span className="t-small faint">{role === "admin" ? "Administração" : "Instrutor"}</span>
         </span>
       </button>
     </div>

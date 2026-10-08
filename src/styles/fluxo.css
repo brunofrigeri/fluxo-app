@@ -176,7 +176,8 @@ textarea.input{height:auto;padding:12px 14px;line-height:22px;resize:none}
 .st.sel{border-color:currentColor;box-shadow:0 0 0 2px var(--surface),0 0 0 4px currentColor}
 button.st{cursor:pointer}
 .stsel{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px}
-.stsel button.st{justify-content:flex-start;height:44px;font-size:14px;padding:0 12px 0 10px}
+.stsel button.st{justify-content:flex-start;height:44px;font-size:14px;padding:0 12px 0 10px;min-width:0}
+.stsel .stlabel{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;min-width:0}
 .sdot{width:16px;height:16px;border-radius:50%;flex:none;position:relative;background:var(--dot,transparent)}
 .sdot::after{content:"";position:absolute;inset:3px;background:#fff;-webkit-mask:var(--m) center/contain no-repeat;mask:var(--m) center/contain no-repeat}
 .fx[data-theme=dark] .sdot::after{background:#111}

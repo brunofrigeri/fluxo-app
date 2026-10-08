@@ -60,7 +60,7 @@ export function StatusSelector({
               onClick={() => pick(value)}
             >
               <span className={`sdot ${m.dot}`} />
-              {m.label}
+              <span className="stlabel">{m.label}</span>
             </button>
           );
         })}

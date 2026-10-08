@@ -3,6 +3,7 @@
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { z } from "zod";
+import { getAdmin } from "@/lib/admin";
 import { cleanTree } from "@/lib/apparatus";
 import { db, friendly } from "@/lib/auth";
 import { todayISO } from "@/lib/dates";
@@ -20,6 +21,7 @@ const clientSchema = z.object({
   emergency_contact_name: z.string().nullable(),
   emergency_contact_phone: z.string().nullable(),
   date_of_birth: z.string().regex(/^\d{4}-\d{2}-\d{2}$/, "Data de nascimento inválida.").nullable(),
+  instructor_id: z.string().uuid().nullable(),
 });
 
 function readClient(formData: FormData) {
@@ -31,6 +33,7 @@ function readClient(formData: FormData) {
     emergency_contact_name: orNull(text(formData.get("emergency_contact_name"))),
     emergency_contact_phone: orNull(text(formData.get("emergency_contact_phone"))),
     date_of_birth: orNull(text(formData.get("date_of_birth"))),
+    instructor_id: orNull(text(formData.get("instructor_id"))),
   });
 }
 
@@ -39,8 +42,10 @@ export async function createClientAction(_prev: FormState, formData: FormData): 
   if (!parsed.success) return { error: parsed.error.issues[0].message };
   let id: string;
   try {
+    const me = await getAdmin();
+    if (!me?.studioId) return { error: "Sessão expirada. Entre novamente." };
     const supabase = await db();
-    const { data, error } = await supabase.from("clients").insert(parsed.data).select("id").single();
+    const { data, error } = await supabase.from("clients").insert({ ...parsed.data, studio_id: me.studioId }).select("id").single();
     if (error) return { error: friendly(error) };
     id = data.id as string;
   } catch (e) {
@@ -213,4 +218,51 @@ export async function deleteEvolution(clientId: string, evolutionId: string): Pr
   revalidatePath(`/clientes/${clientId}`);
   revalidatePath("/");
   redirect(`/clientes/${clientId}?aba=evolucoes`);
+}
+
+// ---------------------------------------------------------------- documents
+
+const DOCUMENTS_BUCKET = "client-documents";
+const MAX_DOCUMENT_BYTES = 10 * 1024 * 1024;
+const ALLOWED_DOCUMENT_TYPES = new Set(["application/pdf", "image/jpeg", "image/png", "image/heic", "image/heif"]);
+
+export async function uploadDocument(clientId: string, formData: FormData): Promise<void> {
+  const file = formData.get("file");
+  if (!(file instanceof File) || file.size === 0) throw new Error("Escolha um arquivo.");
+  if (!ALLOWED_DOCUMENT_TYPES.has(file.type)) throw new Error("Formato não suportado. Envie PDF, JPG, PNG ou HEIC.");
+  if (file.size > MAX_DOCUMENT_BYTES) throw new Error("O arquivo deve ter até 10MB.");
+
+  const label = text(formData.get("name")) || file.name;
+  const ext = file.name.includes(".") ? file.name.slice(file.name.lastIndexOf(".")) : "";
+  const path = `${clientId}/${crypto.randomUUID()}${ext}`;
+
+  const supabase = await db();
+  const { error: uploadError } = await supabase.storage.from(DOCUMENTS_BUCKET).upload(path, file, { contentType: file.type });
+  if (uploadError) throw new Error(friendly(uploadError));
+  const { error } = await supabase.from("documents").insert({
+    client_id: clientId,
+    name: label,
+    storage_path: path,
+    mime_type: file.type,
+    size_bytes: file.size,
+  });
+  if (error) {
+    await supabase.storage.from(DOCUMENTS_BUCKET).remove([path]);
+    throw new Error(friendly(error));
+  }
+  revalidatePath(`/clientes/${clientId}`);
+  redirect(`/clientes/${clientId}?aba=dados`);
+}
+
+export async function deleteDocument(clientId: string, documentId: string): Promise<void> {
+  const supabase = await db();
+  const { data: doc, error: findError } = await supabase.from("documents").select("storage_path").eq("id", documentId).eq("client_id", clientId).maybeSingle();
+  if (findError) throw new Error(friendly(findError));
+  if (doc) {
+    await supabase.storage.from(DOCUMENTS_BUCKET).remove([doc.storage_path as string]);
+    const { error } = await supabase.from("documents").delete().eq("id", documentId).eq("client_id", clientId);
+    if (error) throw new Error(friendly(error));
+  }
+  revalidatePath(`/clientes/${clientId}`);
+  redirect(`/clientes/${clientId}?aba=dados`);
 }

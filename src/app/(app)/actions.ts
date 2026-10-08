@@ -2,9 +2,11 @@
 
 import { revalidatePath } from "next/cache";
 import { z } from "zod";
+import { getAdmin } from "@/lib/admin";
 import { db, friendly } from "@/lib/auth";
 import { summarize } from "@/lib/apparatus";
 import { formatBR } from "@/lib/dates";
+import { getDialogClients, type DialogClient } from "@/lib/queries/agenda";
 import { isStatus, type AttendanceStatus } from "@/lib/status";
 
 type Result = { error?: string };
@@ -73,6 +75,53 @@ export async function createBooking(input: { clientId: string; date: string; hou
       replaces_booking_id: replacesId ?? null,
     });
     if (error) return { error: friendly(error) };
+  } catch (e) {
+    return { error: (e as Error).message };
+  }
+  refresh();
+  return {};
+}
+
+/** Active clients with their pending justified misses, fetched on demand when the add-booking dialog opens. */
+export async function getDialogClientsAction(): Promise<DialogClient[]> {
+  return getDialogClients();
+}
+
+/** A shared note for a class slot (date + hour), independent of any one client. */
+export async function getSessionNote(date: string, hour: number): Promise<string | null> {
+  try {
+    const supabase = await db();
+    const { data } = await supabase
+      .from("session_notes")
+      .select("note")
+      .eq("date", date)
+      .eq("start_time", `${String(hour).padStart(2, "0")}:00`)
+      .maybeSingle();
+    return (data?.note as string | undefined) ?? null;
+  } catch {
+    return null;
+  }
+}
+
+const noteSchema = z.string().trim().max(2000);
+
+export async function saveSessionNote(date: string, hour: number, note: string): Promise<Result> {
+  const parsed = noteSchema.safeParse(note);
+  if (!parsed.success) return { error: "Nota muito longa." };
+  const start_time = `${String(hour).padStart(2, "0")}:00`;
+  try {
+    const me = await getAdmin();
+    if (!me?.studioId) return { error: "Sessão expirada. Entre novamente." };
+    const supabase = await db();
+    if (parsed.data === "") {
+      const { error } = await supabase.from("session_notes").delete().eq("date", date).eq("start_time", start_time);
+      if (error) return { error: friendly(error) };
+    } else {
+      const { error } = await supabase
+        .from("session_notes")
+        .upsert({ studio_id: me.studioId, date, start_time, note: parsed.data, updated_at: new Date().toISOString() }, { onConflict: "studio_id,date,start_time" });
+      if (error) return { error: friendly(error) };
+    }
   } catch (e) {
     return { error: (e as Error).message };
   }

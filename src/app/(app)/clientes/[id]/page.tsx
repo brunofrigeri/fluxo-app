@@ -8,11 +8,12 @@ import { Icon } from "@/components/Icon";
 import { Modal } from "@/components/Modal";
 import { TagList } from "@/components/TagList";
 import { Tabs } from "@/components/Tabs";
+import { getAdmin } from "@/lib/admin";
 import { ageFrom, initialsOf } from "@/lib/age";
 import { summarize } from "@/lib/apparatus";
 import { formatBR, hhmm, todayISO, weekdayName } from "@/lib/dates";
 import { createClient } from "@/lib/supabase/server";
-import { addRecurringSlot, deleteEvaluation, removeRecurringSlot, saveEvaluation, setArchived, updateClientAction } from "../actions";
+import { addRecurringSlot, deleteDocument, deleteEvaluation, removeRecurringSlot, saveEvaluation, setArchived, updateClientAction, uploadDocument } from "../actions";
 
 export const dynamic = "force-dynamic";
 
@@ -36,13 +37,17 @@ export default async function ClientPage({ params, searchParams }: { params: Pro
   const aba = sp.aba === "evolucoes" || sp.aba === "avaliacoes" ? sp.aba : "dados";
   const supabase = await createClient();
 
-  const [clientRes, slotsRes] = await Promise.all([
+  const [me, clientRes, slotsRes, instructorsRes] = await Promise.all([
+    getAdmin(),
     supabase.from("clients").select("*").eq("id", id).maybeSingle(),
     supabase.from("recurring_slots").select("id, weekday, start_time, active_until").eq("client_id", id).order("weekday").order("start_time"),
+    supabase.from("profiles").select("id, name").order("name"),
   ]);
   if (clientRes.error) throw new Error(`cliente: ${clientRes.error.message}`);
   const client = clientRes.data;
   if (!client) notFound();
+  const instructors = (instructorsRes.data ?? []) as { id: string; name: string }[];
+  const canReassign = me?.role === "admin";
 
   const today = todayISO();
   const slots = (slotsRes.data ?? []).filter((s) => !s.active_until || (s.active_until as string) >= today);
@@ -109,10 +114,13 @@ export default async function ClientPage({ params, searchParams }: { params: Pro
               emergency_contact_name: (client.emergency_contact_name as string | null) ?? "",
               emergency_contact_phone: (client.emergency_contact_phone as string | null) ?? "",
               date_of_birth: (client.date_of_birth as string | null) ?? "",
+              instructor_id: (client.instructor_id as string | null) ?? "",
             }}
             action={updateClientAction.bind(null, id)}
             cancelHref={`${base}?aba=dados`}
             saved={sp.salvo === "1"}
+            instructors={instructors}
+            canReassign={canReassign}
           />
 
           <div style={{ display: "flex", flexDirection: "column", gap: 20 }}>
@@ -122,6 +130,8 @@ export default async function ClientPage({ params, searchParams }: { params: Pro
               <TagList title="Cirurgias" name="surgeries" formId="client-form" initial={(client.surgeries as string[]) ?? []} placeholder="Adicionar cirurgia" />
               <p className="help">Doenças e cirurgias são gravadas com o botão Salvar dos dados pessoais.</p>
             </section>
+
+            <DocumentsSection clientId={id} />
 
             <section className="card" style={{ display: "flex", flexDirection: "column", gap: 6 }}>
               <div className="row" style={{ alignItems: "flex-start" }}>
@@ -182,6 +192,59 @@ export default async function ClientPage({ params, searchParams }: { params: Pro
       {aba === "evolucoes" && <EvolutionsTab clientId={id} pagina={sp.pagina} />}
       {aba === "avaliacoes" && <EvaluationsTab clientId={id} selected={sp.avaliacao} today={today} />}
     </>
+  );
+}
+
+function formatSize(bytes: number): string {
+  if (bytes < 1024 * 1024) return `${Math.max(1, Math.round(bytes / 1024))} KB`;
+  return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
+}
+
+async function DocumentsSection({ clientId }: { clientId: string }) {
+  const supabase = await createClient();
+  const { data, error } = await supabase
+    .from("documents")
+    .select("id, name, mime_type, size_bytes, created_at")
+    .eq("client_id", clientId)
+    .order("created_at", { ascending: false });
+  if (error) throw new Error(`documentos: ${error.message}`);
+  const docs = data ?? [];
+
+  return (
+    <section className="card" style={{ display: "flex", flexDirection: "column", gap: 14 }}>
+      <h2 className="t-h3">Documentos</h2>
+      {docs.length === 0 ? (
+        <p className="t-small muted">Nenhum documento ainda.</p>
+      ) : (
+        docs.map((d) => (
+          <div className="li" key={d.id as string}>
+            <Icon name="note" size={16} className="faint" />
+            <a className="grow" style={{ fontWeight: 600, color: "var(--ink)", textDecoration: "none" }} href={`/clientes/${clientId}/documentos/${d.id}`} target="_blank" rel="noopener noreferrer">
+              {d.name as string}
+            </a>
+            <span className="t-small muted">{formatSize(d.size_bytes as number)}</span>
+            <span className="t-small muted">{formatBR(d.created_at as string)}</span>
+            <form action={deleteDocument.bind(null, clientId, d.id as string)}>
+              <ConfirmButton className="ibtn" ariaLabel="Remover documento" message={`Remover "${d.name}"? Isso não pode ser desfeito.`}>
+                <Icon name="x" size={16} />
+              </ConfirmButton>
+            </form>
+          </div>
+        ))
+      )}
+      <details>
+        <summary className="btn sm" style={{ listStyle: "none", width: "fit-content" }}>
+          <Icon name="plus" size={16} />
+          Adicionar documento
+        </summary>
+        <form action={uploadDocument.bind(null, clientId)} className="row" style={{ marginTop: 12, gap: 8, flexWrap: "wrap" }}>
+          <input type="text" name="name" className="input" placeholder="Nome (opcional)" style={{ flex: "1 1 180px", height: 40 }} />
+          <input type="file" name="file" className="input" accept=".pdf,.jpg,.jpeg,.png,.heic,.heif" required style={{ flex: "1 1 220px", height: 40, padding: "6px 10px" }} />
+          <button className="btn pri sm" type="submit">Enviar</button>
+        </form>
+        <p className="help" style={{ marginTop: 6 }}>PDF, JPG, PNG ou HEIC, até 10MB.</p>
+      </details>
+    </section>
   );
 }
 

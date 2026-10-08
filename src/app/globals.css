@@ -37,15 +37,22 @@ html, body { margin: 0; min-height: 100%; background: #F8F5F0; }
 .tabs .tabi:focus-visible { outline: 3px solid var(--accent); outline-offset: -3px; border-radius: 8px; }
 
 /* ---- agenda ---- */
-.cal-scroll { overflow-x: auto; }
+/* Per spec, pairing overflow-x:auto with overflow-y:visible gets silently rewritten to
+   overflow-y:auto by the browser (visible is forced to auto next to a non-visible axis,
+   even when authored explicitly) — that turned this into its own vertical scroll container
+   and stole wheel scroll from the page. overflow-y:hidden sidesteps that rule; this box never
+   has a fixed height (it grows with its content), so nothing is ever actually clipped. */
+.cal-scroll { overflow-x: auto; overflow-y: hidden; }
 .cal-inner.wide { min-width: 780px; }
-.ev.agenda { overflow: visible; position: relative; }
+.ev.agenda { overflow: visible; position: relative; cursor: pointer; }
+.ev.agenda:hover { background: var(--stone-2, var(--stone)); }
+.ev.agenda:focus-visible { outline: 3px solid var(--accent); outline-offset: 2px; }
 .ev.agenda .cchip { max-width: 100%; }
 .cname { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-.addmini { display: inline-grid; place-items: center; width: 22px; height: 22px; border-radius: 7px; color: var(--ink-2); opacity: .55; text-decoration: none; }
+.addmini { display: inline-grid; place-items: center; width: 22px; height: 22px; border-radius: 7px; border: 0; background: transparent; padding: 0; font: inherit; color: var(--ink-2); opacity: .55; text-decoration: none; cursor: pointer; }
 .addmini:hover { opacity: 1; background: var(--surface); color: var(--accent); text-decoration: none; }
-a.addslot { opacity: 0; height: 100%; display: grid; place-items: center; color: var(--accent); text-decoration: none; border-radius: 12px; margin: 2px 3px; }
-a.addslot:hover, a.addslot:focus-visible { opacity: 1; background: color-mix(in srgb, var(--accent-soft) 70%, transparent); text-decoration: none; }
+.addslot { opacity: 0; height: 100%; width: 100%; display: grid; place-items: center; color: var(--accent); text-decoration: none; border: 0; background: transparent; border-radius: 12px; margin: 2px 3px; cursor: pointer; }
+.addslot:hover, .addslot:focus-visible { opacity: 1; background: color-mix(in srgb, var(--accent-soft) 70%, transparent); text-decoration: none; }
 a.mcell { display: flex; flex-direction: column; gap: 8px; height: 148px; padding: 12px 14px; border-left: 1px solid var(--line); border-top: 1px solid var(--line); color: var(--ink); text-decoration: none; }
 a.mcell:hover { text-decoration: none; }
 .bk-pop { position: fixed; z-index: 60; width: min(384px, calc(100vw - 24px)); padding: 20px; display: flex; flex-direction: column; gap: 16px; }

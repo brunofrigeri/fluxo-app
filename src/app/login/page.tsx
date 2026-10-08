@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import Link from "next/link";
 import { Icon } from "@/components/Icon";
 import { PasswordField } from "@/components/PasswordField";
 import { SubmitButton } from "@/components/SubmitButton";
@@ -54,6 +55,10 @@ export default async function LoginPage({ searchParams }: { searchParams: Promis
 
           <SubmitButton pendingLabel="Entrando…">Entrar</SubmitButton>
         </form>
+
+        <p className="t-small muted">
+          Ainda não tem um estúdio? <Link href="/signup">Criar conta</Link>
+        </p>
 
         <p className="t-small faint" style={{ display: "flex", alignItems: "center", gap: 8 }}>
           <Icon name="lock" size={14} />

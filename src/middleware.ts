@@ -23,9 +23,13 @@ export async function middleware(request: NextRequest) {
     data: { user },
   } = await supabase.auth.getUser();
 
-  const onLogin = request.nextUrl.pathname.startsWith("/login");
+  const onLogin = request.nextUrl.pathname.startsWith("/login") || request.nextUrl.pathname.startsWith("/signup");
+  // /convite: an invited person lands here with a session established client-side from the
+  // email link's URL fragment (never visible to this middleware) and sets their password.
+  // Exempt it entirely — no user yet when they arrive, and don't bounce them away once they do.
+  const onInvite = request.nextUrl.pathname.startsWith("/convite");
 
-  if (!user && !onLogin) {
+  if (!user && !onLogin && !onInvite) {
     const target = request.nextUrl.clone();
     target.pathname = "/login";
     target.search = "";

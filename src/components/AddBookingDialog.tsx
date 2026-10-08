@@ -1,6 +1,5 @@
 "use client";
 
-import { useRouter } from "next/navigation";
 import { useEffect, useMemo, useState, useTransition } from "react";
 import { createBooking } from "@/app/(app)/actions";
 import type { DialogClient } from "@/lib/queries/agenda";
@@ -9,8 +8,9 @@ import { FIRST_HOUR, LAST_HOUR } from "@/lib/agenda-config";
 import { Icon } from "./Icon";
 
 type Props = {
-  closeHref: string;
-  clients: DialogClient[];
+  onClose: () => void;
+  onCreated: () => void;
+  clients: DialogClient[] | null;
   initialDate: string;
   initialHour: number;
   initialClientId?: string;
@@ -20,8 +20,7 @@ type Props = {
 
 const norm = (s: string) => s.normalize("NFD").replace(/[̀-ͯ]/g, "").toLowerCase();
 
-export function AddBookingDialog({ closeHref, clients, initialDate, initialHour, initialClientId, initialMissId, slotCount }: Props) {
-  const router = useRouter();
+export function AddBookingDialog({ onClose, onCreated, clients, initialDate, initialHour, initialClientId, initialMissId, slotCount }: Props) {
   const [pending, start] = useTransition();
   const [query, setQuery] = useState("");
   const [clientId, setClientId] = useState<string | null>(initialClientId ?? null);
@@ -32,15 +31,15 @@ export function AddBookingDialog({ closeHref, clients, initialDate, initialHour,
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    const onKey = (e: KeyboardEvent) => e.key === "Escape" && router.push(closeHref);
+    const onKey = (e: KeyboardEvent) => e.key === "Escape" && onClose();
     document.addEventListener("keydown", onKey);
     return () => document.removeEventListener("keydown", onKey);
-  }, [router, closeHref]);
+  }, [onClose]);
 
-  const selected = clients.find((c) => c.id === clientId) ?? null;
+  const selected = (clients ?? []).find((c) => c.id === clientId) ?? null;
   const results = useMemo(() => {
     const q = norm(query.trim());
-    if (!q) return [];
+    if (!q || !clients) return [];
     return clients.filter((c) => norm(c.name).includes(q)).slice(0, 6);
   }, [clients, query]);
 
@@ -53,19 +52,19 @@ export function AddBookingDialog({ closeHref, clients, initialDate, initialHour,
     start(async () => {
       const r = await createBooking({ clientId: selected.id, date, hour, replacesId: replacement ? (missId ?? undefined) : undefined });
       if (r.error) setError(r.error);
-      else router.push(closeHref);
+      else onCreated();
     });
   }
 
   return (
-    <div className="scrim modal-scrim" onMouseDown={(e) => e.target === e.currentTarget && router.push(closeHref)}>
+    <div className="scrim modal-scrim" onMouseDown={(e) => e.target === e.currentTarget && onClose()}>
       <div className="pop modal-box" role="dialog" aria-modal="true" aria-labelledby="add-title" style={{ width: 460 }}>
         <div className="row" style={{ alignItems: "flex-start" }}>
           <div className="grow">
             <h2 className="t-h2" id="add-title">{replacement ? "Agendar reposição" : "Adicionar cliente"}</h2>
             {slotCount !== undefined && <p className="t-small muted">{slotCount === 1 ? "1 cliente neste horário" : `${slotCount} clientes neste horário`}</p>}
           </div>
-          <button className="ibtn" type="button" aria-label="Fechar" onClick={() => router.push(closeHref)} style={{ margin: "-8px -8px 0 0" }}>
+          <button className="ibtn" type="button" aria-label="Fechar" onClick={onClose} style={{ margin: "-8px -8px 0 0" }}>
             <Icon name="x" />
           </button>
         </div>
@@ -97,9 +96,11 @@ export function AddBookingDialog({ closeHref, clients, initialDate, initialHour,
             <>
               <div className="inwrap">
                 <span className="ic i-search lead" aria-hidden="true" />
-                <input id="b-client" className="input with-ic" placeholder="Buscar cliente" value={query} onChange={(e) => setQuery(e.target.value)} autoFocus autoComplete="off" />
+                <input id="b-client" className="input with-ic" placeholder="Buscar cliente" value={query} onChange={(e) => setQuery(e.target.value)} autoFocus autoComplete="off" disabled={!clients} />
               </div>
-              {query.trim() === "" ? (
+              {!clients ? (
+                <p className="help">Carregando clientes…</p>
+              ) : query.trim() === "" ? (
                 <p className="help">Digite para buscar. Clientes arquivados não aparecem.</p>
               ) : results.length === 0 ? (
                 <p className="help">Nenhum cliente encontrado.</p>
@@ -148,7 +149,7 @@ export function AddBookingDialog({ closeHref, clients, initialDate, initialHour,
         {error && <div className="errmsg" role="alert">{error}</div>}
 
         <div className="row" style={{ justifyContent: "flex-end", gap: 10 }}>
-          <button className="btn" type="button" onClick={() => router.push(closeHref)}>Cancelar</button>
+          <button className="btn" type="button" onClick={onClose}>Cancelar</button>
           <button className={`btn pri${canSubmit && !pending ? "" : " dis"}`} type="button" onClick={submit} aria-disabled={!canSubmit || pending}>
             {pending && <span className="spin" />}
             {replacement ? "Agendar reposição" : "Adicionar"}

@@ -1,11 +1,10 @@
 import type { Metadata } from "next";
 import { headers } from "next/headers";
 import Link from "next/link";
-import { AddBookingDialog } from "@/components/AddBookingDialog";
-import { AgendaEvent } from "@/components/AgendaEvent";
+import { AgendaBoard } from "@/components/AgendaBoard";
 import { Icon } from "@/components/Icon";
 import { Seg } from "@/components/Seg";
-import { dayNumber, minuteOfDayNow, todayISO, weekdayShortUpper } from "@/lib/dates";
+import { dayNumber, minuteOfDayNow, todayISO } from "@/lib/dates";
 import {
   FIRST_HOUR, LAST_HOUR, getAgendaBookings, getDialogClients, monthCellLabel, parseView, rangeFor,
   type AgendaBooking, type View,
@@ -48,25 +47,15 @@ export default async function AgendaPage({ searchParams }: { searchParams: Promi
   }
 
   // "Adicionar cliente" dialog, opened by ?novo=2026-10-06_08 (a slot) or ?novo=1 (from Home).
-  let dialog: React.ReactNode = null;
+  let initialAdd: { date: string; hour: number; clientId?: string; missId?: string; slotCount?: number } | null = null;
+  let initialClients: Awaited<ReturnType<typeof getDialogClients>> | null = null;
   if (sp.novo) {
     const m = /^(\d{4}-\d{2}-\d{2})_(\d{2})$/.exec(sp.novo);
     const date = m ? m[1] : today;
     const hour = m ? Math.min(LAST_HOUR, Math.max(FIRST_HOUR, Number(m[2]))) : 7;
-    const clients = await getDialogClients();
+    initialClients = await getDialogClients();
     const slotCount = m ? (byDate.get(date) ?? []).filter((b) => b.hour === hour).length : undefined;
-    dialog = (
-      <AddBookingDialog
-        key={`${sp.novo}-${sp.cliente ?? ""}-${sp.reposicao ?? ""}`}
-        closeHref={href({ vista: view, data: sp.data })}
-        clients={clients}
-        initialDate={date}
-        initialHour={hour}
-        initialClientId={sp.cliente}
-        initialMissId={sp.reposicao}
-        slotCount={slotCount}
-      />
-    );
+    initialAdd = { date, hour, clientId: sp.cliente, missId: sp.reposicao, slotCount };
   }
 
   const colsCls = view === "dia" ? "cols1" : view === "3dias" ? "cols3" : "cols7";
@@ -112,7 +101,7 @@ export default async function AgendaPage({ searchParams }: { searchParams: Promi
                 const isToday = day === today;
                 const kinds = ORDER.filter((s) => list.some((b) => b.status === s));
                 return (
-                  <Link key={day} href={href({ vista: "dia", data: day })} className={`mcell${isToday ? " today" : ""}${inMonth ? "" : " dim"}`} aria-label={`${day.slice(8)} — ${monthCellLabel(list.length)}`}>
+                  <Link key={day} href={href({ vista: "dia", data: day })} prefetch={false} className={`mcell${isToday ? " today" : ""}${inMonth ? "" : " dim"}`} aria-label={`${day.slice(8)} — ${monthCellLabel(list.length)}`}>
                     <span style={{ minWidth: 30, height: 30, borderRadius: "50%", display: "grid", placeItems: "center", fontWeight: 700, fontSize: 15, width: "fit-content" }} className={isToday ? "tdy" : ""}>
                       {dayNumber(day)}
                     </span>
@@ -130,50 +119,18 @@ export default async function AgendaPage({ searchParams }: { searchParams: Promi
         ) : (
           <div className="cal-scroll">
             <div className={`cal-inner${view === "semana" ? " wide" : ""}`}>
-              <div className={colsCls} style={{ display: "grid", borderBottom: "1px solid var(--line)" }}>
-                <div />
-                {range.days.map((day) => {
-                  const isToday = day === today;
-                  return (
-                    <div key={day} style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: 10, padding: "10px 4px", borderLeft: "1px solid var(--line)" }}>
-                      <span className={`t-tiny ${isToday ? "" : "faint"}`}>{weekdayShortUpper(day)}</span>
-                      <span className={isToday ? "tdy" : ""} style={{ minWidth: 36, height: 36, borderRadius: "50%", display: "grid", placeItems: "center", fontWeight: 700, fontSize: 18 }}>
-                        {dayNumber(day)}
-                      </span>
-                    </div>
-                  );
-                })}
-              </div>
-
-              <div className={colsCls} style={{ display: "grid", paddingTop: 10 }}>
-                <div className="hours">
-                  {HOURS.map((h) => (
-                    <div key={h}>{String(h).padStart(2, "0")}:00</div>
-                  ))}
-                </div>
-                {range.days.map((day) => {
-                  const list = byDate.get(day) ?? [];
-                  const isToday = day === today;
-                  return (
-                    <div key={day} className={`daycol${isToday ? " today" : ""}`}>
-                      {isToday && nowTop >= 0 && nowTop <= HOURS.length * ROW_PX && <div className="nowline" style={{ top: nowTop }} />}
-                      {HOURS.map((h) => {
-                        const slot = list.filter((b) => b.hour === h);
-                        const novo = `${day}_${String(h).padStart(2, "0")}`;
-                        const addHref = href({ vista: view, data: sp.data, novo });
-                        const row = h - FIRST_HOUR + 1;
-                        return slot.length > 0 ? (
-                          <AgendaEvent key={h} bookings={slot} compact={view === "semana"} addHref={addHref} row={row} />
-                        ) : (
-                          <Link key={h} href={addHref} className={`addslot gr${row}`} aria-label={`Adicionar cliente em ${day.slice(8)}/${day.slice(5, 7)}, ${String(h).padStart(2, "0")}:00`}>
-                            <Icon name="plus" size={20} />
-                          </Link>
-                        );
-                      })}
-                    </div>
-                  );
-                })}
-              </div>
+              <AgendaBoard
+                colsCls={colsCls}
+                days={range.days}
+                byDate={byDate}
+                today={today}
+                nowTop={nowTop}
+                hours={HOURS}
+                rowPx={ROW_PX}
+                compact={view === "semana"}
+                initialAdd={initialAdd}
+                initialClients={initialClients}
+              />
             </div>
           </div>
         )}
@@ -188,7 +145,6 @@ export default async function AgendaPage({ searchParams }: { searchParams: Promi
         ))}
       </div>
       {view === "mes" && <p className="t-small muted" style={{ marginTop: 10 }}>Clicar em um dia abre a visualização Dia. Os pontos resumem os status do dia.</p>}
-      {dialog}
     </>
   );
 }

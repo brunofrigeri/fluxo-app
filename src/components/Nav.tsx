@@ -11,11 +11,16 @@ const ITEMS: { href: string; label: string; icon: IconName }[] = [
   { href: "/espera", label: "Lista de espera", icon: "clock" },
 ];
 
-export function Nav() {
+const ADMIN_ITEMS: { href: string; label: string; icon: IconName }[] = [
+  { href: "/usuarios", label: "Usuários", icon: "users" },
+];
+
+export function Nav({ isAdmin }: { isAdmin: boolean }) {
   const pathname = usePathname();
+  const items = isAdmin ? [...ITEMS, ...ADMIN_ITEMS] : ITEMS;
   return (
     <nav className="nav" aria-label="Principal">
-      {ITEMS.map((item) => {
+      {items.map((item) => {
         const on = item.href === "/" ? pathname === "/" : pathname.startsWith(item.href);
         return (
           <Link key={item.href} href={item.href} className={`nav-i${on ? " on" : ""}`} aria-current={on ? "page" : undefined} title={item.label}>

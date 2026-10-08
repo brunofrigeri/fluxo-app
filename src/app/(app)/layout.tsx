@@ -18,8 +18,8 @@ export default async function AppLayout({ children }: { children: React.ReactNod
             </div>
             <span className="wordmark">Fluxo</span>
           </div>
-          <Nav />
-          <UserMenu name={admin.name} email={admin.email} initials={admin.initials} />
+          <Nav isAdmin={admin.role === "admin"} />
+          <UserMenu name={admin.name} email={admin.email} initials={admin.initials} role={admin.role} />
         </aside>
         <main className="main">{children}</main>
       </div>
