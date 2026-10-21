@@ -17,6 +17,7 @@ export function friendly(error: { code?: string; message: string }): string {
     if (error.message.includes("replaces_booking_id") || error.message.includes("one_replacement")) return "Esta falta já foi reposta.";
     return "Este cliente já está neste horário.";
   }
+  if (error.code === "42501" || error.message.includes("row-level security")) return "Você não tem acesso a esta modalidade deste cliente.";
   if (error.code === "23514") {
     if (error.message.includes("bookings_justified_needs_reason")) return "Informe o motivo da falta justificada.";
     if (error.message.includes("bookings_check")) return "Esta sessão é uma reposição e não pode mudar de status.";

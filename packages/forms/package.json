@@ -1,0 +1,14 @@
+{
+  "name": "@fluxo/forms",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Modalities and clinical form definitions shared by the web and mobile apps. No React: each platform draws the definitions with its own renderer.",
+  "main": "src/index.ts",
+  "types": "src/index.ts",
+  "scripts": {
+    "test": "tsx --test test/*.test.ts"
+  },
+  "dependencies": {
+    "zod": "^3.24.0"
+  }
+}

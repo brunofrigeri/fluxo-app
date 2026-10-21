@@ -3,7 +3,7 @@ import Link from "next/link";
 import { ClientForm, EMPTY_CLIENT } from "@/components/ClientForm";
 import { Icon } from "@/components/Icon";
 import { getAdmin } from "@/lib/admin";
-import { createClient } from "@/lib/supabase/server";
+import { getInstructorsByModality, getTeachableModalities } from "@/lib/modalities";
 import { createClientAction } from "../actions";
 
 export const metadata: Metadata = { title: "Novo cliente" };
@@ -11,11 +11,9 @@ export const dynamic = "force-dynamic";
 
 export default async function NewClientPage() {
   const me = await getAdmin();
-  const supabase = await createClient();
-  const { data } = await supabase.from("profiles").select("id, name").order("name");
-  const instructors = (data ?? []) as { id: string; name: string }[];
-  const canReassign = me?.role === "admin";
-  const values = { ...EMPTY_CLIENT, instructor_id: canReassign ? "" : (me?.id ?? "") };
+  if (!me) return null;
+  const [teachable, byModality] = await Promise.all([getTeachableModalities(me), getInstructorsByModality()]);
+  const canReassign = me.role === "admin";
 
   return (
     <>
@@ -28,8 +26,17 @@ export default async function NewClientPage() {
         <h1 className="t-display">Novo cliente</h1>
       </header>
       <div style={{ maxWidth: 880 }}>
-        <ClientForm formId="client-form" values={values} action={createClientAction} cancelHref="/clientes" instructors={instructors} canReassign={canReassign} />
-        <p className="t-small muted" style={{ marginTop: 14 }}>Doenças, cirurgias e horários semanais são adicionados na página do cliente, depois de salvar.</p>
+        <ClientForm
+          formId="client-form"
+          values={EMPTY_CLIENT}
+          action={createClientAction}
+          cancelHref="/clientes"
+          modalities={teachable.map((m) => ({ key: m.key, name: m.name, instructors: byModality.get(m.id) ?? [] }))}
+          enrollment={{}}
+          canEditModalities
+          canReassign={canReassign}
+        />
+        <p className="t-small muted" style={{ marginTop: 14 }}>Doenças, cirurgias, tratamentos e horários semanais são adicionados na página do cliente, depois de salvar.</p>
       </div>
     </>
   );

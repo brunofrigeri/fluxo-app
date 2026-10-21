@@ -9,8 +9,12 @@ insert into clients (document, name, email, phone, date_of_birth) values
   ('555.555.555-55', 'Marina Duarte',        'marina@example.com', '(11) 98012-6639', '1990-10-08'),
   ('666.666.666-66', 'Helena Barros',        'helena@example.com', '(11) 99871-2043', '1968-05-17');
 
-insert into recurring_slots (client_id, weekday, start_time, active_from)
-select c.id, s.weekday, s.start_time::time, current_date
+insert into client_modality_instructors (client_id, modality_id)
+select c.id, (select id from modalities where key = 'pilates') from clients c
+on conflict do nothing;
+
+insert into recurring_slots (client_id, weekday, start_time, active_from, modality_id)
+select c.id, s.weekday, s.start_time::time, current_date, (select id from modalities where key = 'pilates')
 from clients c
 join (values
   ('Bruno Almeida', 1, '07:00'), ('Bruno Almeida', 4, '10:00'),

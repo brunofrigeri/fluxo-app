@@ -1,3 +1,4 @@
+import { cache } from "react";
 import { createClient } from "@/lib/supabase/server";
 
 const TITLES = /^(dr|dra|sr|sra)\.?$/i;
@@ -42,11 +43,21 @@ async function provisionStudio(supabase: Awaited<ReturnType<typeof createClient>
   if (profileError || !profile) {
     throw new Error(`Não foi possível criar o perfil de administrador (${profileError?.message ?? "erro desconhecido"}).`);
   }
+
+  // Switch on the modalities chosen at signup (default Pilates) and let the founder teach them.
+  const chosen = ((user.user_metadata?.modalities as unknown[] | undefined) ?? []).filter((k): k is string => typeof k === "string");
+  const { data: all, error: modalitiesError } = await supabase.from("modalities").select("id, key");
+  if (modalitiesError) throw new Error(`Não foi possível carregar as modalidades (${modalitiesError.message}).`);
+  const picked = (all ?? []).filter((m) => chosen.includes(m.key as string));
+  const ids = (picked.length > 0 ? picked : (all ?? []).filter((m) => m.key === "pilates")).map((m) => m.id as string);
+  const { error: enableError } = await supabase.from("studio_modalities").insert(ids.map((modality_id) => ({ studio_id: studioId, modality_id })));
+  if (enableError) throw new Error(`Não foi possível ativar as modalidades (${enableError.message}).`);
+  // The founder is an admin, and admins teach every modality of the studio by default (migration 0012).
   return profile;
 }
 
 /** The signed-in user, or null. Name comes from auth metadata; role/working hours/studio from `profiles`. */
-export async function getAdmin(): Promise<Admin | null> {
+export const getAdmin = cache(async (): Promise<Admin | null> => {
   const supabase = await createClient();
   const {
     data: { user },
@@ -61,4 +72,4 @@ export async function getAdmin(): Promise<Admin | null> {
   if (!profile) profile = await provisionStudio(supabase, user);
   const role = (profile?.role as Role | undefined) ?? "instructor";
   return buildAdmin(user.user_metadata, user.email ?? "", user.id, role, (profile?.working_hours as string | null) ?? null, (profile?.studio_id as string | null) ?? null);
-}
+});

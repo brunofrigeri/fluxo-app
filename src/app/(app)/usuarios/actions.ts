@@ -3,11 +3,14 @@
 import { revalidatePath } from "next/cache";
 import { headers } from "next/headers";
 import { redirect } from "next/navigation";
+import type { SupabaseClient } from "@supabase/supabase-js";
 import { z } from "zod";
 import { db, friendly } from "@/lib/auth";
+import { getStudioModalities } from "@/lib/modalities";
 import { createAdminClient } from "@/lib/supabase/admin";
 
-export type FormState = { error?: string } | undefined;
+/** `saved` tells the dialog to close itself; the actions do not redirect, so the page stays where it is. */
+export type FormState = { error?: string; saved?: boolean } | undefined;
 
 const text = (v: FormDataEntryValue | null) => String(v ?? "").trim();
 const orNull = (v: string) => (v === "" ? null : v);
@@ -21,6 +24,24 @@ async function requireAdmin() {
   const { data: profile } = await supabase.from("profiles").select("role, studio_id").eq("id", user.id).maybeSingle();
   if (profile?.role !== "admin") throw new Error("Apenas administradores podem gerenciar usuários.");
   return { supabase, userId: user.id as string, studioId: profile.studio_id as string };
+}
+
+/** The modalities ticked on the form, checked against what the studio offers. */
+async function readModalities(formData: FormData, role: "admin" | "instructor"): Promise<string[] | string> {
+  const offered = new Set((await getStudioModalities()).map((m) => m.id));
+  const ids = [...new Set(formData.getAll("modality").map(String))];
+  if (ids.some((id) => !offered.has(id))) return "Modalidade inválida.";
+  if (role === "instructor" && ids.length === 0) return "Escolha ao menos uma modalidade que o instrutor ensina.";
+  return ids;
+}
+
+/** Makes the modalities a user teaches exactly `ids` (works with either the RLS-scoped or the admin client). */
+async function syncModalities(client: SupabaseClient,userId: string, ids: string[]) {
+  const del = client.from("user_modalities").delete().eq("user_id", userId);
+  const { error: removeError } = ids.length > 0 ? await del.not("modality_id", "in", `(${ids.join(",")})`) : await del;
+  if (removeError) return { error: removeError };
+  if (ids.length === 0) return { error: null };
+  return client.from("user_modalities").upsert(ids.map((modality_id) => ({ user_id: userId, modality_id })), { onConflict: "user_id,modality_id", ignoreDuplicates: true });
 }
 
 const inviteSchema = z.object({
@@ -40,6 +61,8 @@ export async function inviteUser(_prev: FormState, formData: FormData): Promise<
     working_hours: orNull(text(formData.get("working_hours"))),
   });
   if (!parsed.success) return { error: parsed.error.issues[0].message };
+  const modalityIds = await readModalities(formData, parsed.data.role);
+  if (typeof modalityIds === "string") return { error: modalityIds };
 
   try {
     const h = await headers();
@@ -63,11 +86,19 @@ export async function inviteUser(_prev: FormState, formData: FormData): Promise<
       await admin.auth.admin.deleteUser(userId);
       return { error: friendly(profileError) };
     }
+    {
+      // A new admin already teaches every modality of the studio (migration 0012): make it exactly what was ticked.
+      const { error: modalitiesError } = await syncModalities(admin, userId, modalityIds);
+      if (modalitiesError) {
+        await admin.auth.admin.deleteUser(userId); // the profile goes with it (cascade)
+        return { error: friendly(modalitiesError) };
+      }
+    }
   } catch (e) {
     return { error: (e as Error).message };
   }
   revalidatePath("/usuarios");
-  redirect("/usuarios");
+  return { saved: true };
 }
 
 const updateSchema = z.object({
@@ -84,10 +115,33 @@ export async function updateUser(userId: string, _prev: FormState, formData: For
     working_hours: orNull(text(formData.get("working_hours"))),
   });
   if (!parsed.success) return { error: parsed.error.issues[0].message };
+  const modalityIds = await readModalities(formData, parsed.data.role);
+  if (typeof modalityIds === "string") return { error: modalityIds };
+
+  const { data: current, error: currentError } = await supabase.from("user_modalities").select("modality_id").eq("user_id", userId);
+  if (currentError) return { error: friendly(currentError) };
+  const had = new Set((current ?? []).map((r) => r.modality_id as string));
+  const want = new Set(modalityIds);
+  const removed = [...had].filter((id) => !want.has(id));
+
+  // Stopping a modality would silently leave their clients without an instructor: make the admin reassign first.
+  if (removed.length > 0) {
+    const { count, error: countError } = await supabase
+      .from("client_modality_instructors")
+      .select("client_id", { count: "exact", head: true })
+      .eq("instructor_id", userId)
+      .in("modality_id", removed);
+    if (countError) return { error: friendly(countError) };
+    if ((count ?? 0) > 0) return { error: `Esta pessoa é responsável por ${count} ${count === 1 ? "cliente" : "clientes"} nessa modalidade. Reatribua antes de removê-la.` };
+  }
+
   const { error } = await supabase.from("profiles").update(parsed.data).eq("id", userId);
   if (error) return { error: friendly(error) };
+  // Becoming an admin adds every studio modality (migration 0012); make it exactly what was ticked.
+  const { error: syncError } = await syncModalities(supabase, userId, [...want]);
+  if (syncError) return { error: friendly(syncError) };
   revalidatePath("/usuarios");
-  redirect("/usuarios");
+  return { saved: true };
 }
 
 export async function removeUser(userId: string): Promise<void> {

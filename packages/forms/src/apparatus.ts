@@ -35,24 +35,31 @@ export const REGION_LABELS: Record<RegionKey, string> = {
   global: "Global",
 };
 
-const exercise = z.object({
-  regions: z.array(z.enum(REGION_KEYS)),
-  note: z.string().optional(),
-});
+// Strict at every level: the server rejects keys it does not know instead of silently storing them.
+const exercise = z
+  .object({
+    regions: z.array(z.enum(REGION_KEYS)),
+    note: z.string().max(5000).optional(),
+  })
+  .strict();
 
-const exercises = z.object({
-  mobility: exercise.optional(),
-  strengthening: exercise.optional(),
-  stretching: exercise.optional(),
-});
+const exercises = z
+  .object({
+    mobility: exercise.optional(),
+    strengthening: exercise.optional(),
+    stretching: exercise.optional(),
+  })
+  .strict();
 
-export const apparatusSchema = z.object({
-  reformer: exercises.optional(),
-  barrel: exercises.optional(),
-  cadillac: exercises.optional(),
-  chair: exercises.optional(),
-  balance: exercises.optional(),
-});
+export const apparatusSchema = z
+  .object({
+    reformer: exercises.optional(),
+    barrel: exercises.optional(),
+    cadillac: exercises.optional(),
+    chair: exercises.optional(),
+    balance: exercises.optional(),
+  })
+  .strict();
 
 export type Apparatus = z.infer<typeof apparatusSchema>;
 export type Exercise = z.infer<typeof exercise>;
@@ -125,7 +132,7 @@ export function countFields(raw: unknown, apparatus?: ApparatusKey): number {
 }
 
 /** Title and first note, for lists: "Reformer · Fortalecimento · MMII, Quadril". */
-export function summarize(raw: unknown): { title: string; text: string; extra: number } {
+export function summarizeApparatus(raw: unknown): { title: string; text: string; extra: number } {
   const all = leaves(raw);
   if (all.length === 0) return { title: "Evolução sem campos preenchidos", text: "", extra: 0 };
   const first = all[0];

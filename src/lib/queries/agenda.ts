@@ -1,6 +1,7 @@
 import { createClient } from "@/lib/supabase/server";
 import { addDays, addMonths, dayNumber, formatBR, formatDayMonth, formatLong, formatMonthYear, hhmm, isValidISO, mondayOf, monthName, monthShort, todayISO } from "@/lib/dates";
 import { FIRST_HOUR, LAST_HOUR } from "@/lib/agenda-config";
+import type { ModalityKey } from "@fluxo/forms";
 import type { AttendanceStatus } from "@/lib/status";
 
 export const VIEWS = ["dia", "3dias", "semana", "mes"] as const;
@@ -18,6 +19,13 @@ export type AgendaBooking = {
   time: string;
   replacesDate: string | null;
   missReason: string | null;
+  /** Null on a labelled one-off entry (no modality, no evolution form). */
+  modalityId: string | null;
+  modalityKey: ModalityKey | null;
+  label: string | null;
+  /** The responsible instructor of this client in this modality. Null: nobody assigned, or a labelled one-off entry. */
+  instructorId: string | null;
+  instructorName: string | null;
 };
 
 export type AgendaRange = {
@@ -72,18 +80,28 @@ type Row = {
   status: AttendanceStatus | null;
   replaces_booking_id: string | null;
   miss_reason: string | null;
+  modality_id: string | null;
+  label: string | null;
   clients: { name: string } | { name: string }[] | null;
+  modalities: { key: string } | { key: string }[] | null;
 };
 
-export async function getAgendaBookings(from: string, to: string): Promise<AgendaBooking[]> {
+export function modalityKeyOf(m: Row["modalities"]): ModalityKey | null {
+  const key = Array.isArray(m) ? m[0]?.key : m?.key;
+  return key === "pilates" || key === "acupuncture" ? key : null;
+}
+
+export async function getAgendaBookings(from: string, to: string, modalityId?: string | null): Promise<AgendaBooking[]> {
   const supabase = await createClient();
-  const { data, error } = await supabase
+  let query = supabase
     .from("bookings")
-    .select("id, client_id, date, start_time, status, replaces_booking_id, miss_reason, clients(name)")
+    .select("id, client_id, date, start_time, status, replaces_booking_id, miss_reason, modality_id, label, clients(name), modalities(key)")
     .gte("date", from)
     .lte("date", to)
     .order("start_time")
     .order("date");
+  if (modalityId) query = query.eq("modality_id", modalityId);
+  const { data, error } = await query;
   if (error) throw new Error(`agenda: ${error.message}`);
   const rows = (data ?? []) as unknown as Row[];
 
@@ -95,9 +113,24 @@ export async function getAgendaBookings(from: string, to: string): Promise<Agend
     for (const r of res.data ?? []) replacedDates.set(r.id as string, r.date as string);
   }
 
+  // Who is responsible for each client in each modality (RLS: an instructor only sees their own rows).
+  const instructorOf = new Map<string, { id: string; name: string }>();
+  const clientIds = [...new Set(rows.map((r) => r.client_id))];
+  if (clientIds.length > 0) {
+    const res = await supabase.from("client_modality_instructors").select("client_id, modality_id, instructor_id, profiles(name)").in("client_id", clientIds);
+    if (res.error) throw new Error(`instrutores da agenda: ${res.error.message}`);
+    for (const r of (res.data ?? []) as unknown as { client_id: string; modality_id: string; instructor_id: string | null; profiles: { name: string } | { name: string }[] | null }[]) {
+      const p = Array.isArray(r.profiles) ? r.profiles[0] : r.profiles;
+      if (r.instructor_id && p) instructorOf.set(`${r.client_id}|${r.modality_id}`, { id: r.instructor_id, name: p.name });
+    }
+  }
+
   return rows.map((r) => {
     const client = Array.isArray(r.clients) ? r.clients[0] : r.clients;
+    const instructor = r.modality_id ? instructorOf.get(`${r.client_id}|${r.modality_id}`) : undefined;
     return {
+      instructorId: instructor?.id ?? null,
+      instructorName: instructor?.name ?? null,
       id: r.id,
       clientId: r.client_id,
       name: client?.name ?? "Cliente",
@@ -107,11 +140,20 @@ export async function getAgendaBookings(from: string, to: string): Promise<Agend
       time: hhmm(r.start_time),
       replacesDate: r.replaces_booking_id ? (replacedDates.get(r.replaces_booking_id) ?? null) : null,
       missReason: r.miss_reason,
+      modalityId: r.modality_id,
+      modalityKey: modalityKeyOf(r.modalities),
+      label: r.label,
     };
   });
 }
 
-export type DialogClient = { id: string; name: string; misses: { id: string; label: string; reason: string | null }[] };
+export type DialogClient = {
+  id: string;
+  name: string;
+  /** Modalities the client is enrolled in that the signed-in user can see (RLS). */
+  modalityIds: string[];
+  misses: { id: string; modalityId: string | null; label: string; reason: string | null }[];
+};
 
 /** Active clients, each with the justified misses nobody has made up yet. */
 export async function getDialogClients(): Promise<DialogClient[]> {
@@ -119,8 +161,8 @@ export async function getDialogClients(): Promise<DialogClient[]> {
   const today = todayISO();
   const since = addDays(today, -90);
   const [clientsRes, missRes] = await Promise.all([
-    supabase.from("clients").select("id, name").eq("active", true).order("name"),
-    supabase.from("bookings").select("id, client_id, date, start_time, miss_reason").eq("status", "JUSTIFIED_MISS").gte("date", since).order("date", { ascending: false }),
+    supabase.from("clients").select("id, name, client_modality_instructors(modality_id)").eq("active", true).order("name"),
+    supabase.from("bookings").select("id, client_id, modality_id, date, start_time, miss_reason").eq("status", "JUSTIFIED_MISS").gte("date", since).order("date", { ascending: false }),
   ]);
   if (clientsRes.error) throw new Error(`clientes: ${clientsRes.error.message}`);
 
@@ -134,10 +176,15 @@ export async function getDialogClients(): Promise<DialogClient[]> {
   for (const m of misses) {
     if (madeUp.has(m.id as string)) continue;
     const list = byClient.get(m.client_id as string) ?? [];
-    list.push({ id: m.id as string, label: `${formatBR(m.date as string)}, ${hhmm(m.start_time as string)}`, reason: (m.miss_reason as string | null) ?? null });
+    list.push({ id: m.id as string, modalityId: (m.modality_id as string | null) ?? null, label: `${formatBR(m.date as string)}, ${hhmm(m.start_time as string)}`, reason: (m.miss_reason as string | null) ?? null });
     byClient.set(m.client_id as string, list);
   }
-  return (clientsRes.data ?? []).map((c) => ({ id: c.id as string, name: c.name as string, misses: byClient.get(c.id as string) ?? [] }));
+  return ((clientsRes.data ?? []) as unknown as { id: string; name: string; client_modality_instructors: { modality_id: string }[] }[]).map((c) => ({
+    id: c.id,
+    name: c.name,
+    modalityIds: c.client_modality_instructors.map((m) => m.modality_id),
+    misses: byClient.get(c.id) ?? [],
+  }));
 }
 
 export function monthCellLabel(count: number): string {

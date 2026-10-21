@@ -8,11 +8,12 @@ import { Icon } from "./Icon";
 import type { AgendaBooking } from "@/lib/queries/agenda";
 import { weekdayShortUpper, dayNumber } from "@/lib/dates";
 import type { DialogClient } from "@/lib/queries/agenda";
+import type { Modality } from "@/lib/modalities";
 
-type Add = { date: string; hour: number; clientId?: string; missId?: string; slotCount?: number };
+type Add = { date: string; hour: number; clientId?: string; missId?: string; slotCount?: number; modalityId?: string };
 
 export function AgendaBoard({
-  colsCls, days, byDate, today, nowTop, hours, rowPx, compact, initialAdd, initialClients,
+  colsCls, days, byDate, today, nowTop, hours, rowPx, compact, initialAdd, initialClients, modalities, filterModalityId, isAdmin, chipInstructor,
 }: {
   colsCls: string;
   days: string[];
@@ -24,24 +25,32 @@ export function AgendaBoard({
   compact: boolean;
   initialAdd: Add | null;
   initialClients: DialogClient[] | null;
+  modalities: Modality[];
+  /** The agenda's modality filter: new bookings start in it. */
+  filterModalityId?: string;
+  isAdmin: boolean;
+  /** Show each booking's instructor on its chip (admin looking at everyone). */
+  chipInstructor: boolean;
 }) {
   const [add, setAdd] = useState<Add | null>(initialAdd);
   const [clients, setClients] = useState<DialogClient[] | null>(initialClients);
   const [, startLoad] = useTransition();
   const cameFromUrl = initialAdd !== null;
 
+  // Load the client list as soon as the agenda is on screen, so "+" opens the dialog with it ready
+  // instead of waiting on the server after the tap.
   useEffect(() => {
-    if (add && clients === null) {
+    if (clients === null) {
       startLoad(async () => {
         const c = await getDialogClientsAction();
         setClients(c);
       });
     }
-  }, [add, clients]);
+  }, [clients]);
 
   function openAdd(date: string, hour: number) {
     const slotCount = (byDate.get(date) ?? []).filter((b) => b.hour === hour).length;
-    setAdd({ date, hour, slotCount });
+    setAdd({ date, hour, slotCount, modalityId: filterModalityId });
   }
 
   function close() {
@@ -88,7 +97,7 @@ export function AgendaBoard({
                 const slot = list.filter((b) => b.hour === h);
                 const row = h - hours[0] + 1;
                 return slot.length > 0 ? (
-                  <AgendaEvent key={h} bookings={slot} compact={compact} onAdd={() => openAdd(day, h)} row={row} />
+                  <AgendaEvent key={h} bookings={slot} compact={compact} onAdd={() => openAdd(day, h)} row={row} isAdmin={isAdmin} chipInstructor={chipInstructor} />
                 ) : (
                   <button
                     key={h}
@@ -117,6 +126,8 @@ export function AgendaBoard({
           initialClientId={add.clientId}
           initialMissId={add.missId}
           slotCount={add.slotCount}
+          modalities={modalities}
+          initialModalityId={add.modalityId}
         />
       )}
     </>

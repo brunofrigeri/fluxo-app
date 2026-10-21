@@ -1,10 +1,12 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
+import { getForm, isModalityKey } from "@fluxo/forms";
 import { Crumbs } from "@/components/Crumbs";
+import { FormReadView } from "@/components/forms/FormReadView";
 import { Icon } from "@/components/Icon";
+import { ModalityTag } from "@/components/ModalityTag";
 import { initialsOf } from "@/lib/age";
-import { APPARATUS_KEYS, APPARATUS_LABELS, EXERCISE_LABELS, REGION_LABELS, countFields, leaves } from "@/lib/apparatus";
 import { formatBR, formatWeekdayDate, hhmm } from "@/lib/dates";
 import { getClientHead } from "@/lib/queries/evolution";
 import { statusMeta, type AttendanceStatus } from "@/lib/status";
@@ -20,8 +22,16 @@ export default async function EvolutionPage({ params, searchParams }: { params: 
   if (!client) notFound();
 
   const supabase = await createClient();
-  const { data: evo } = await supabase.from("evolutions").select("id, date, booking_id, apparatus").eq("id", evoId).eq("client_id", id).maybeSingle();
+  const { data: evo } = await supabase
+    .from("evolutions")
+    .select("id, date, booking_id, session_number, data, modalities(key)")
+    .eq("id", evoId)
+    .eq("client_id", id)
+    .maybeSingle();
   if (!evo) notFound();
+  const m = evo.modalities as { key: string } | { key: string }[] | null;
+  const key = Array.isArray(m) ? m[0]?.key : m?.key;
+  if (!isModalityKey(key)) notFound();
 
   let session: { date: string; time: string; status: AttendanceStatus | null } | null = null;
   if (evo.booking_id) {
@@ -29,9 +39,6 @@ export default async function EvolutionPage({ params, searchParams }: { params: 
     if (b) session = { date: b.date as string, time: hhmm(b.start_time as string), status: b.status as AttendanceStatus | null };
   }
 
-  const all = leaves(evo.apparatus);
-  const total = countFields(evo.apparatus);
-  const shown = APPARATUS_KEYS.filter((a) => all.some((l) => l.apparatus === a));
   const date = formatBR(evo.date as string);
 
   return (
@@ -41,8 +48,8 @@ export default async function EvolutionPage({ params, searchParams }: { params: 
         <div className="row" style={{ gap: 16 }}>
           <span className="avatar" style={{ width: 48, height: 48 }}>{initialsOf(client.name)}</span>
           <div>
-            <h1 className="t-h1">Evolução de {date}</h1>
-            <p className="t-small muted">{client.name}{session ? ` · sessão de ${formatWeekdayDate(session.date).toLowerCase()}, ${session.time}` : ""}</p>
+            <h1 className="t-h1 row" style={{ gap: 12, flexWrap: "wrap" }}>Evolução de {date} <ModalityTag modality={key} /></h1>
+            <p className="t-small muted">Sessão nº {evo.session_number as number} · {client.name}{session ? ` · sessão de ${formatWeekdayDate(session.date).toLowerCase()}, ${session.time}` : ""}</p>
           </div>
         </div>
         <Link className="btn" href={`/clientes/${id}/evolucoes/${evoId}/editar`}><Icon name="edit" size={16} />Editar</Link>
@@ -64,33 +71,7 @@ export default async function EvolutionPage({ params, searchParams }: { params: 
           </section>
         )}
 
-        <section className="card" style={{ display: "flex", flexDirection: "column", gap: 0, padding: "8px 28px" }}>
-          {shown.map((a, i) => (
-            <div key={a} style={{ display: "grid", gridTemplateColumns: "minmax(110px, 180px) minmax(0, 1fr)", gap: 24, padding: "22px 0", borderBottom: i < shown.length - 1 ? "1px solid var(--line)" : undefined }}>
-              <h2 className="t-h2">{APPARATUS_LABELS[a]}</h2>
-              <div style={{ display: "flex", flexDirection: "column", gap: 20 }}>
-                {all.filter((l) => l.apparatus === a).map((l) => (
-                  <div key={l.exercise}>
-                    <span className="pill acc">{EXERCISE_LABELS[l.exercise]}</span>
-                    {l.regions.length > 0 && (
-                      <div className="row" style={{ flexWrap: "wrap", gap: 8, marginTop: 10 }}>
-                        {l.regions.map((r) => (
-                          <span key={r} className="tag" style={{ paddingRight: 12 }}>{REGION_LABELS[r]}</span>
-                        ))}
-                      </div>
-                    )}
-                    {l.note && <p className="t-body" style={{ marginTop: 10, whiteSpace: "pre-wrap" }}>{l.note}</p>}
-                  </div>
-                ))}
-              </div>
-            </div>
-          ))}
-          {shown.length === 0 && <p className="t-body muted" style={{ padding: "22px 0" }}>Nenhum campo preenchido.</p>}
-        </section>
-        <p className="t-small muted row" style={{ gap: 8 }}>
-          <Icon name="info" size={16} />
-          Mostrando só os {total} {total === 1 ? "campo preenchido" : "campos preenchidos"}. Os demais aparelhos não foram usados nesta sessão.
-        </p>
+        <FormReadView def={getForm(key, "evolution")} data={evo.data as Record<string, unknown>} />
       </div>
     </>
   );

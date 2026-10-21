@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import Link from "next/link";
+import { MODALITY_KEYS, MODALITY_LABELS } from "@fluxo/forms";
 import { Icon } from "@/components/Icon";
 import { PasswordField } from "@/components/PasswordField";
 import { SubmitButton } from "@/components/SubmitButton";
@@ -65,6 +66,19 @@ export default async function SignupPage({ searchParams }: { searchParams: Promi
                 <PasswordField />
                 <span className="help">Pelo menos 8 caracteres.</span>
               </div>
+
+              <fieldset className="regions">
+                <legend className="label">O que seu estúdio oferece?</legend>
+                <div className="rchips">
+                  {MODALITY_KEYS.map((key) => (
+                    <label key={key} className="rchip">
+                      <input type="checkbox" name="modalities" value={key} defaultChecked={key === "pilates"} />
+                      {MODALITY_LABELS[key]}
+                    </label>
+                  ))}
+                </div>
+                <span className="help">Você pode mudar isso depois, em Configurações.</span>
+              </fieldset>
 
               <SubmitButton pendingLabel="Criando…">Criar conta</SubmitButton>
             </form>

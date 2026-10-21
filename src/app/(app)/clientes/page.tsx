@@ -1,7 +1,9 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { Icon } from "@/components/Icon";
+import { ModalityTag } from "@/components/ModalityTag";
 import { Seg } from "@/components/Seg";
+import { getStudioModalities } from "@/lib/modalities";
 import { formatShort, hhmm, todayISO } from "@/lib/dates";
 import { createClient } from "@/lib/supabase/server";
 
@@ -35,14 +37,15 @@ export default async function ClientesPage({ searchParams }: { searchParams: Pro
   const supabase = await createClient();
   let query = supabase
     .from("clients")
-    .select("id, name, phone, active", { count: "exact" })
+    .select("id, name, phone, active, client_modality_instructors(modality_id)", { count: "exact" })
     .eq("active", situacao === "ativos")
     .order("name")
     .range(from, from + PAGE_SIZE - 1);
   if (q) query = query.or(`name.ilike.%${q}%,document.ilike.%${q}%`);
 
-  const { data, count, error } = await query;
+  const [{ data, count, error }, studioModalities] = await Promise.all([query, getStudioModalities()]);
   if (error) throw new Error(`clientes: ${error.message}`);
+  const modalityOf = new Map(studioModalities.map((m) => [m.id, m]));
   const clients = data ?? [];
   const ids = clients.map((c) => c.id as string);
   const today = todayISO();
@@ -135,6 +138,11 @@ export default async function ClientesPage({ searchParams }: { searchParams: Pro
                         <div className="row">
                           <span className="avatar sm">{initials(c.name as string)}</span>
                           <Link className="tag-link" href={`/clientes/${id}`}>{c.name as string}</Link>
+                          {studioModalities.length > 1 &&
+                            ((c as unknown as { client_modality_instructors: { modality_id: string }[] }).client_modality_instructors ?? []).map((e) => {
+                              const m = modalityOf.get(e.modality_id);
+                              return m ? <ModalityTag key={m.id} modality={m.key} /> : null;
+                            })}
                         </div>
                       </td>
                       <td>{(c.phone as string | null) ?? "—"}</td>

@@ -1,24 +1,24 @@
 import type { Metadata } from "next";
-import Link from "next/link";
 import { ConfirmButton } from "@/components/ConfirmButton";
 import { Icon } from "@/components/Icon";
-import { Modal } from "@/components/Modal";
 import { Seg } from "@/components/Seg";
+import { ModalityTag } from "@/components/ModalityTag";
+import { WaitEditDialog } from "@/components/WaitEditDialog";
 import { WaitForm } from "@/components/WaitForm";
+import { getStudioModalities } from "@/lib/modalities";
 import { formatBR, todayISO } from "@/lib/dates";
 import { createClient } from "@/lib/supabase/server";
 import { PERIODS, PERIOD_LABELS, PERIOD_SLUGS, periodFromSlug, type Period } from "@/lib/waitlist";
-import { addToWaitList, removeFromWaitList, updateWaitEntry } from "./actions";
+import { addToWaitList, removeFromWaitList } from "./actions";
 
 export const metadata: Metadata = { title: "Lista de espera" };
 export const dynamic = "force-dynamic";
 
-type Search = { periodo?: string; editar?: string };
+type Search = { periodo?: string };
 
-function href(periodo: Period | null, editar?: string): string {
+function href(periodo: Period | null): string {
   const sp = new URLSearchParams();
   if (periodo) sp.set("periodo", PERIOD_SLUGS[periodo]);
-  if (editar) sp.set("editar", editar);
   const qs = sp.toString();
   return qs ? `/espera?${qs}` : "/espera";
 }
@@ -28,14 +28,18 @@ export default async function WaitListPage({ searchParams }: { searchParams: Pro
   const filter = periodFromSlug(sp.periodo);
 
   const supabase = await createClient();
-  const { data, error } = await supabase.from("wait_list").select("id, name, phone, period, created_at").order("created_at");
+  const [{ data, error }, modalities] = await Promise.all([
+    supabase.from("wait_list").select("id, name, phone, period, created_at, modality_id").order("created_at"),
+    getStudioModalities(),
+  ]);
   if (error) throw new Error(`lista de espera: ${error.message}`);
-  const all = (data ?? []) as { id: string; name: string; phone: string; period: Period; created_at: string }[];
+  const all = (data ?? []) as { id: string; name: string; phone: string; period: Period; created_at: string; modality_id: string }[];
+  const modalityOf = new Map(modalities.map((m) => [m.id, m]));
 
   const counts: Record<Period, number> = { MORNING: 0, AFTERNOON: 0, NIGHT: 0 };
   for (const r of all) counts[r.period] += 1;
   const rows = filter ? all.filter((r) => r.period === filter) : all;
-  const editing = sp.editar ? all.find((r) => r.id === sp.editar) : undefined;
+  const dialogModalities = modalities.map((m) => ({ id: m.id, name: m.name }));
 
   return (
     <>
@@ -50,7 +54,7 @@ export default async function WaitListPage({ searchParams }: { searchParams: Pro
 
       <section className="card" style={{ marginBottom: 20 }} aria-labelledby="add-h">
         <h2 className="t-h3" id="add-h" style={{ marginBottom: 14 }}>Adicionar à lista</h2>
-        <WaitForm action={addToWaitList} />
+        <WaitForm action={addToWaitList} modalities={modalities} />
       </section>
 
       <section className="card" style={{ padding: 0, overflow: "hidden" }}>
@@ -77,6 +81,7 @@ export default async function WaitListPage({ searchParams }: { searchParams: Pro
                 <tr>
                   <th>Nome</th>
                   <th>Telefone</th>
+                  {modalities.length > 1 && <th>Modalidade</th>}
                   <th>Período</th>
                   <th style={{ width: 120, textAlign: "right" }}>Ações</th>
                 </tr>
@@ -89,9 +94,10 @@ export default async function WaitListPage({ searchParams }: { searchParams: Pro
                       <div className="t-small muted">Na lista desde {formatBR(todayISO(new Date(r.created_at)))}</div>
                     </td>
                     <td><a href={`tel:${r.phone.replace(/[^\d+]/g, "")}`}>{r.phone}</a></td>
+                    {modalities.length > 1 && <td>{modalityOf.get(r.modality_id) ? <ModalityTag modality={modalityOf.get(r.modality_id)!.key} /> : "—"}</td>}
                     <td><span className="pill">{PERIOD_LABELS[r.period]}</span></td>
                     <td style={{ textAlign: "right", whiteSpace: "nowrap" }}>
-                      <Link className="ibtn" href={href(filter, r.id)} aria-label={`Editar ${r.name}`}><Icon name="edit" /></Link>
+                      <WaitEditDialog id={r.id} name={r.name} phone={r.phone} period={r.period} modalityId={r.modality_id} modalities={dialogModalities} />
                       <form action={removeFromWaitList.bind(null, r.id)} style={{ display: "inline" }}>
                         <ConfirmButton className="ibtn" ariaLabel={`Remover ${r.name} da lista`} message={`Remover ${r.name} da lista de espera?`}>
                           <Icon name="x" />
@@ -105,12 +111,6 @@ export default async function WaitListPage({ searchParams }: { searchParams: Pro
           </div>
         )}
       </section>
-
-      {editing && (
-        <Modal title="Editar pessoa da lista" closeHref={href(filter)} width={520}>
-          <WaitForm key={editing.id} action={updateWaitEntry.bind(null, editing.id)} initial={{ name: editing.name, phone: editing.phone, period: editing.period }} closeHref={href(filter)} />
-        </Modal>
-      )}
     </>
   );
 }

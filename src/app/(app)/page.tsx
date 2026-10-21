@@ -1,10 +1,13 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { Icon, type IconName } from "@/components/Icon";
+import { ModalityTag } from "@/components/ModalityTag";
+import { Seg } from "@/components/Seg";
 import { StatusMenu } from "@/components/StatusMenu";
 import { getAdmin } from "@/lib/admin";
 import { initialsOf } from "@/lib/age";
 import { formatLong, greeting } from "@/lib/dates";
+import { getStudioModalities, pickModality } from "@/lib/modalities";
 import { getHomeData } from "@/lib/queries/home";
 
 export const metadata: Metadata = { title: "Home" };
@@ -39,8 +42,12 @@ function ClientLink({ id, name }: { id: string; name: string }) {
   );
 }
 
-export default async function HomePage() {
-  const [admin, data] = await Promise.all([getAdmin(), getHomeData()]);
+export default async function HomePage({ searchParams }: { searchParams: Promise<{ mod?: string }> }) {
+  const sp = await searchParams;
+  const studioModalities = await getStudioModalities();
+  const filter = pickModality(sp.mod, studioModalities);
+  const [admin, data] = await Promise.all([getAdmin(), getHomeData(filter?.id)]);
+  const manyModalities = studioModalities.length > 1;
   const { slots, unmarked, missingEvolution, toReschedule, attention, birthdays, attendance } = data;
   const yesterdayPending = unmarked.length + missingEvolution.length;
 
@@ -53,6 +60,15 @@ export default async function HomePage() {
           </h1>
           <p className="t-body muted" style={{ marginTop: 2 }}>{formatLong(data.today)}</p>
         </div>
+        {manyModalities && (
+          <Seg
+            label="Modalidade"
+            items={[
+              { href: "/", label: "Todas", on: !filter },
+              ...studioModalities.map((m) => ({ href: `/?mod=${m.key}`, label: m.name, on: filter?.id === m.id })),
+            ]}
+          />
+        )}
       </header>
 
       <div className="home-main">
@@ -76,7 +92,10 @@ export default async function HomePage() {
                   {slot.clients.map((c) => (
                     <div key={c.bookingId} style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 12, minHeight: 40, flexWrap: "wrap" }}>
                       <div>
-                        <ClientLink id={c.clientId} name={c.name} />
+                        <span className="row" style={{ gap: 8, flexWrap: "wrap" }}>
+                          <ClientLink id={c.clientId} name={c.name} />
+                          {(manyModalities || c.label) && <ModalityTag modality={c.modalityKey} label={c.label} />}
+                        </span>
                         {c.status === "JUSTIFIED_MISS" && c.missReason && <div className="t-small muted">Motivo: {c.missReason}</div>}
                       </div>
                       <StatusMenu bookingId={c.bookingId} status={c.status} missReason={c.missReason} />

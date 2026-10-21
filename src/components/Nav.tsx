@@ -13,6 +13,7 @@ const ITEMS: { href: string; label: string; icon: IconName }[] = [
 
 const ADMIN_ITEMS: { href: string; label: string; icon: IconName }[] = [
   { href: "/usuarios", label: "Usuários", icon: "users" },
+  { href: "/configuracoes", label: "Configurações", icon: "wave" },
 ];
 
 export function Nav({ isAdmin }: { isAdmin: boolean }) {

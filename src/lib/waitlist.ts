@@ -21,4 +21,5 @@ export const waitSchema = z.object({
     .max(40, "Telefone muito longo.")
     .refine((v) => v.replace(/\D/g, "").length >= 8, "Informe um telefone válido."),
   period: z.enum(PERIODS, { errorMap: () => ({ message: "Escolha o período." }) }),
+  modalityId: z.string().uuid("Escolha a modalidade."),
 });

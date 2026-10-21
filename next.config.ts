@@ -2,6 +2,8 @@ import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
   reactStrictMode: true,
+  // Shared workspace packages ship TypeScript source.
+  transpilePackages: ["@fluxo/forms"],
   experimental: {
     // Next 15 defaults dynamic pages to a 0s client router cache, so every revisit
     // refetches and re-shows the loading.tsx fallback, even right after you were there.

@@ -1,0 +1,1 @@
+See [CLAUDE.md](./CLAUDE.md). The rule that matters most: every button, toggle, modal and navigation must respond instantly. Open and close modals from client state (never with a server round trip), make small mutations optimistic, and keep revalidation narrow.

@@ -10,28 +10,40 @@ import { STATUS_META, STATUS_VALUES, type AttendanceStatus } from "@/lib/status"
  * and a booking that is a replacement keeps that status.
  */
 export function StatusSelector({
-  bookingId, status, missReason, onDone,
+  bookingId, status: initialStatus, missReason, onDone, onOptimistic, onFail,
 }: {
   bookingId: string;
   status: AttendanceStatus | null;
   missReason: string | null;
+  /** Called at once after a choice, so the menu around it can close without waiting for the server. */
   onDone?: () => void;
+  /** The new status, applied by the caller immediately. */
+  onOptimistic?: (next: AttendanceStatus | null, reason: string | null) => void;
+  /** The server refused: the caller puts the previous status back. */
+  onFail?: (previous: AttendanceStatus | null, message: string) => void;
 }) {
-  const [pending, start] = useTransition();
+  const [, start] = useTransition();
   const [error, setError] = useState<string | null>(null);
   const [asking, setAsking] = useState(false);
   const [reason, setReason] = useState(missReason ?? "");
+  const [status, setStatus] = useState(initialStatus);
+  const pending = false; // choices are optimistic: nothing waits on the server
   const isReplacement = status === "REPLACEMENT";
 
+  // Optimistic: show and close at once, save in the background, put it back if the server says no.
   function save(next: AttendanceStatus | null, why?: string) {
+    const previous = status;
     setError(null);
+    setStatus(next);
+    setAsking(false);
+    onOptimistic?.(next, next === "JUSTIFIED_MISS" ? (why ?? null) : null);
+    onDone?.();
     start(async () => {
       const r = await setBookingStatus(bookingId, next, why);
-      if (r.error) setError(r.error);
-      else {
-        setAsking(false);
-        onDone?.();
-      }
+      if (!r.error) return;
+      setStatus(previous);
+      setError(r.error);
+      onFail?.(previous, r.error);
     });
   }
 
