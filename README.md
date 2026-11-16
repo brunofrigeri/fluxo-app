@@ -121,12 +121,26 @@ The functions that write bookings are callable only by the server (service role)
 
 Opening or closing a modal and flipping a toggle never waits on the server: dialogs are client state, small mutations are optimistic. The rule is in `CLAUDE.md` / `AGENTS.md`.
 
+## Monorepo layout
+
+```
+apps/web/        # @fluxo/web: the Next.js studio app (everything described above; src/, tests/, vercel.json)
+packages/forms/  # @fluxo/forms: modalities and form definitions (no React)
+supabase/        # migrations, seed and SQL tests, shared by every app
+scripts/         # e2e-local.sh
+turbo.json       # Turborepo task graph (build, typecheck, test)
+```
+
+Planned (see the architecture plan): `apps/landing` (marketing site), `apps/mobile` (Expo), and shared `packages/{tokens,copy,domain,ui-web,api,config}`. Each app deploys on its own; the dependency direction is always `apps -> packages`.
+
+Paths in the sections below are relative to `apps/web` unless they start with `supabase/` or `packages/`.
+
 ## Workspaces and tests
 
-The repo is an npm workspace: the Next.js app at the root and shared packages in `packages/*` (today `@fluxo/forms`). `next.config.ts` lists it in `transpilePackages`. The package manager is npm (`package-lock.json`).
+The repo is an npm workspace driven by Turborepo. `apps/web/next.config.ts` lists `@fluxo/forms` in `transpilePackages`. The package manager is npm (`package-lock.json`).
 
 ```bash
-npm test          # form definitions, SQL migrations + RLS (in-process Postgres via PGlite), form rendering
+npm test          # (from the repo root) form definitions, SQL migrations + RLS (in-process Postgres via PGlite), form rendering
 npm run typecheck
 ```
 
@@ -135,9 +149,9 @@ The SQL tests (`supabase/tests/`) run every migration on an in-process Postgres 
 ## Run locally
 
 ```bash
-cp .env.example .env.local   # fill in the three Supabase values
-npm install
-npm run dev
+cd apps/web && cp .env.example .env.local   # fill in the three Supabase values
+cd ../.. && npm install
+npm run dev                  # starts @fluxo/web
 ```
 
 ## Environment variables
@@ -173,7 +187,7 @@ Recurring slots become bookings through `select generate_bookings(8)`. The SQL f
 2. **e2e**: starts a throwaway local Supabase from `supabase/migrations` (never the production project), builds and starts the app, and runs the [e2e](https://e2e.com/docs) tests.
 3. **deploy** (push to `master` only): runs **only if checks and e2e passed**, and deploys to Vercel production with the Vercel CLI.
 
-`vercel.json` turns off Vercel's own auto-deploy for `master`, so a release can only go out through this workflow. Pull-request preview deployments from Vercel still work.
+`apps/web/vercel.json` turns off Vercel's own auto-deploy for `master`, so a release can only go out through this workflow. Pull-request preview deployments from Vercel still work.
 
 **Running the e2e tests on your machine:** `npm run e2e:local` (needs Docker). It starts a throwaway local Supabase from `supabase/migrations`, builds the app against it, runs the tests and cleans up. Run one file with `npm run e2e:local -- tests/auth.e2e.ts`.
 
@@ -207,7 +221,7 @@ To make the gate strict, in GitHub: Settings > Branches > protect `master` and r
 
 ## Deploy on Vercel
 
-1. Push this folder to a private Git repository and import it in Vercel.
+1. Push this repo to a private Git repository and import it in Vercel with **Root Directory = `apps/web`** (keep "Include source files outside of the Root Directory" on, so `packages/*` is available).
 2. Add the three environment variables above in Vercel (Production). The service-role key is a server-only secret. The deploy job uploads the code and Vercel builds it with these variables (so variables marked Sensitive work; do not switch the job to `vercel pull` + `vercel build`, which cannot read them).
 3. In Supabase, Authentication > URL Configuration, set the Site URL to your Vercel domain.
 4. Add the GitHub secrets from the table above. After that, merging to `master` releases through CI.

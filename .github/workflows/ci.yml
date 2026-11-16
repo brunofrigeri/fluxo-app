@@ -67,9 +67,10 @@ jobs:
           } >> "$GITHUB_ENV"
 
       - name: Build
-        run: npm run build
+        run: npx turbo run build --filter=@fluxo/web
 
       - name: Start the app
+        working-directory: apps/web
         run: |
           nohup npm run start -- -p 3000 > app.log 2>&1 &
           for i in $(seq 1 60); do
@@ -79,6 +80,7 @@ jobs:
           echo "The app did not come up on :3000" && cat app.log && exit 1
 
       - name: Install the e2e browser
+        working-directory: apps/web
         run: npx e2e-web install chromium --with-deps
 
       - name: Run e2e
@@ -86,6 +88,7 @@ jobs:
           APP_URL: http://127.0.0.1:3000
           # Only needed by agent.act / agent.assert steps. Deterministic tests run without it.
           AI_GATEWAY_API_KEY: ${{ secrets.AI_GATEWAY_API_KEY }}
+        working-directory: apps/web
         run: npx e2e run --reporter list,junit
 
       - name: Upload e2e report
@@ -94,10 +97,10 @@ jobs:
         with:
           name: e2e-report
           path: |
-            .e2e/junit.xml
-            .e2e/report.json
-            .e2e/results
-            app.log
+            apps/web/.e2e/junit.xml
+            apps/web/.e2e/report.json
+            apps/web/.e2e/results
+            apps/web/app.log
           if-no-files-found: ignore
 
   deploy:

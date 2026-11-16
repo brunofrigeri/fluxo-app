@@ -1,6 +1,6 @@
 # Fluxo: working rules
 
-Next.js 15 (App Router) + Supabase, pt-BR UI. Shared form definitions live in `packages/forms`. Run `npm test` and `npm run typecheck` before finishing a change.
+Monorepo (npm workspaces + Turborepo). The studio app is `apps/web` (Next.js 15 App Router + Supabase, pt-BR UI). Shared form definitions live in `packages/forms`; the database lives in `supabase/` at the root. Dependencies only point `apps -> packages`. Run `npm test` and `npm run typecheck` from the root before finishing a change.
 
 ## Interactions must be instant
 
