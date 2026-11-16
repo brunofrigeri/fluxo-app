@@ -1,9 +1,10 @@
 import { icons, type IconName } from "@fluxo/tokens";
+import type { ColorValue } from "react-native";
 import Svg, { Path } from "react-native-svg";
 import { useTheme } from "./theme";
 
 /** The design system's stroke icons, drawn from the same paths the web masks use. */
-export function Icon({ name, size = 18, color }: { name: IconName; size?: number; color?: string }) {
+export function Icon({ name, size = 18, color }: { name: IconName; size?: number; color?: ColorValue }) {
   const theme = useTheme();
   const def = icons[name];
   return (

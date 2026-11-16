@@ -3,14 +3,13 @@ import Link from "next/link";
 import { Icon } from "@fluxo/ui-web";
 import { ModalityTag } from "@/components/ModalityTag";
 import { Seg } from "@/components/Seg";
+import * as api from "@fluxo/api";
+import { searchTerm } from "@fluxo/api";
 import { getStudioModalities } from "@/lib/modalities";
-import { formatShort, hhmm, todayISO } from "@fluxo/domain";
 import { createClient } from "@/lib/supabase/server";
 
 export const metadata: Metadata = { title: "Clientes" };
 export const dynamic = "force-dynamic";
-
-const PAGE_SIZE = 10;
 
 type Search = { q?: string; situacao?: string; pagina?: string };
 
@@ -30,60 +29,15 @@ function initials(name: string): string {
 export default async function ClientesPage({ searchParams }: { searchParams: Promise<Search> }) {
   const sp = await searchParams;
   const situacao = sp.situacao === "arquivados" ? "arquivados" : "ativos";
-  const q = (sp.q ?? "").replace(/[,()%*]/g, " ").trim();
+  const q = searchTerm(sp.q);
   const pagina = Math.max(1, Number.parseInt(sp.pagina ?? "1", 10) || 1);
-  const from = (pagina - 1) * PAGE_SIZE;
 
   const supabase = await createClient();
-  let query = supabase
-    .from("clients")
-    .select("id, name, phone, active, client_modality_instructors(modality_id)", { count: "exact" })
-    .eq("active", situacao === "ativos")
-    .order("name")
-    .range(from, from + PAGE_SIZE - 1);
-  if (q) query = query.or(`name.ilike.%${q}%,document.ilike.%${q}%`);
-
-  const [{ data, count, error }, studioModalities] = await Promise.all([query, getStudioModalities()]);
-  if (error) throw new Error(`clientes: ${error.message}`);
+  const [list, studioModalities] = await Promise.all([api.listClients(supabase, { q, situation: situacao, page: pagina }), getStudioModalities()]);
   const modalityOf = new Map(studioModalities.map((m) => [m.id, m]));
-  const clients = data ?? [];
-  const ids = clients.map((c) => c.id as string);
-  const today = todayISO();
-
-  // Next session and weekly frequency for the clients on this page.
-  const nextByClient = new Map<string, string>();
-  const freqByClient = new Map<string, number>();
-  if (ids.length > 0) {
-    const [nextRes, slotsRes] = await Promise.all([
-      supabase
-        .from("bookings")
-        .select("client_id, date, start_time")
-        .in("client_id", ids)
-        .gte("date", today)
-        .or("status.is.null,status.eq.PRESENCE_CONFIRMED,status.eq.REPLACEMENT")
-        .order("date")
-        .order("start_time")
-        .limit(500),
-      supabase
-        .from("recurring_slots")
-        .select("client_id")
-        .in("client_id", ids)
-        .or(`active_until.is.null,active_until.gte.${today}`),
-    ]);
-    if (nextRes.error) throw new Error(`próximas sessões: ${nextRes.error.message}`);
-    if (slotsRes.error) throw new Error(`horários fixos: ${slotsRes.error.message}`);
-    for (const b of nextRes.data ?? []) {
-      const id = b.client_id as string;
-      if (!nextByClient.has(id)) nextByClient.set(id, `${formatShort(b.date as string)}, ${hhmm(b.start_time as string)}`);
-    }
-    for (const s of slotsRes.data ?? []) {
-      const id = s.client_id as string;
-      freqByClient.set(id, (freqByClient.get(id) ?? 0) + 1);
-    }
-  }
-
-  const total = count ?? 0;
-  const lastPage = Math.max(1, Math.ceil(total / PAGE_SIZE));
+  const { items: clients, total, lastPage } = list;
+  const from = (pagina - 1) * api.CLIENTS_PAGE_SIZE;
+  const PAGE_SIZE = api.CLIENTS_PAGE_SIZE;
 
   return (
     <>
@@ -129,24 +83,24 @@ export default async function ClientesPage({ searchParams }: { searchParams: Pro
               </thead>
               <tbody>
                 {clients.map((c) => {
-                  const id = c.id as string;
-                  const freq = freqByClient.get(id);
+                  const id = c.id;
+                  const freq = c.weeklyCount;
                   const archived = !c.active;
                   return (
                     <tr key={id} className={archived ? "arch" : ""}>
                       <td>
                         <div className="row">
-                          <span className="avatar sm">{initials(c.name as string)}</span>
-                          <Link className="tag-link" href={`/clientes/${id}`}>{c.name as string}</Link>
+                          <span className="avatar sm">{initials(c.name)}</span>
+                          <Link className="tag-link" href={`/clientes/${id}`}>{c.name}</Link>
                           {studioModalities.length > 1 &&
-                            ((c as unknown as { client_modality_instructors: { modality_id: string }[] }).client_modality_instructors ?? []).map((e) => {
-                              const m = modalityOf.get(e.modality_id);
+                            c.modalityIds.map((modalityId) => {
+                              const m = modalityOf.get(modalityId);
                               return m ? <ModalityTag key={m.id} modality={m.key} /> : null;
                             })}
                         </div>
                       </td>
-                      <td>{(c.phone as string | null) ?? "—"}</td>
-                      <td>{archived ? "—" : (nextByClient.get(id) ?? "Sem sessão marcada")}</td>
+                      <td>{c.phone ?? "—"}</td>
+                      <td>{archived ? "—" : (c.nextSession ?? "Sem sessão marcada")}</td>
                       <td>{freq ? `${freq}x por semana` : "—"}</td>
                       <td><span className={`pill${archived ? "" : " acc"}`}>{archived ? "Arquivado" : "Ativo"}</span></td>
                     </tr>

@@ -3,7 +3,9 @@ import { Stack } from "expo-router";
 import * as SplashScreen from "expo-splash-screen";
 import { StatusBar } from "expo-status-bar";
 import { useEffect } from "react";
+import { QueryProvider } from "@/lib/query";
 import { SessionProvider, useSession } from "@/lib/session";
+import { ToastProvider } from "@/lib/toast";
 
 SplashScreen.preventAutoHideAsync();
 
@@ -30,9 +32,13 @@ function Routes() {
 
 export default function RootLayout() {
   return (
-    <SessionProvider>
-      <StatusBar style="auto" />
-      <Routes />
-    </SessionProvider>
+    <QueryProvider>
+      <SessionProvider>
+        <ToastProvider>
+          <StatusBar style="auto" />
+          <Routes />
+        </ToastProvider>
+      </SessionProvider>
+    </QueryProvider>
   );
 }

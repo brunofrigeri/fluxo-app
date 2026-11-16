@@ -6,7 +6,17 @@
   "main": "src/index.ts",
   "types": "src/index.ts",
   "sideEffects": false,
-  "scripts": { "test": "tsx --test test/*.test.ts" },
-  "dependencies": { "@fluxo/domain": "*", "@fluxo/forms": "*" },
-  "peerDependencies": { "@supabase/supabase-js": "^2.49.0" }
+  "scripts": {
+    "test": "tsx --test test/*.test.ts test/integration/*.test.ts",
+    "test:integration": "tsx --test test/integration/*.test.ts"
+  },
+  "dependencies": {
+    "@fluxo/copy": "*",
+    "@fluxo/domain": "*",
+    "@fluxo/forms": "*",
+    "zod": "^3.24.0"
+  },
+  "peerDependencies": {
+    "@supabase/supabase-js": "^2.49.0"
+  }
 }

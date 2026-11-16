@@ -78,6 +78,13 @@ jobs:
             echo "SUPABASE_SERVICE_ROLE_KEY=$SERVICE_ROLE_KEY"
           } >> "$GITHUB_ENV"
 
+      - name: Shared API against the real local Supabase (RLS, triggers, replacements)
+        run: npm run test:integration -w @fluxo/api
+        env:
+          SUPABASE_TEST_URL: ${{ env.NEXT_PUBLIC_SUPABASE_URL }}
+          SUPABASE_TEST_ANON_KEY: ${{ env.NEXT_PUBLIC_SUPABASE_ANON_KEY }}
+          SUPABASE_TEST_SERVICE_KEY: ${{ env.SUPABASE_SERVICE_ROLE_KEY }}
+
       - name: Build
         run: npx turbo run build --filter=@fluxo/web
 

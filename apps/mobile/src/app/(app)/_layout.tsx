@@ -1,5 +1,10 @@
 import { Stack } from "expo-router";
+import { MeGate } from "@/lib/me";
 
 export default function AppLayout() {
-  return <Stack screenOptions={{ headerShown: false }} />;
+  return (
+    <MeGate>
+      <Stack screenOptions={{ headerShown: false }} />
+    </MeGate>
+  );
 }
