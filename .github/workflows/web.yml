@@ -98,6 +98,15 @@ jobs:
           done
           echo "The app did not come up on :3000" && cat app.log && exit 1
 
+      - name: Mobile user-management routes (Bearer token, over HTTP, against the running app)
+        working-directory: apps/web
+        run: npm run test:api
+        env:
+          APP_URL: http://127.0.0.1:3000
+          SUPABASE_TEST_URL: ${{ env.NEXT_PUBLIC_SUPABASE_URL }}
+          SUPABASE_TEST_ANON_KEY: ${{ env.NEXT_PUBLIC_SUPABASE_ANON_KEY }}
+          SUPABASE_TEST_SERVICE_KEY: ${{ env.SUPABASE_SERVICE_ROLE_KEY }}
+
       - name: Install the e2e browser
         working-directory: apps/web
         run: npx e2e-web install chromium --with-deps
