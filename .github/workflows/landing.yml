@@ -1,0 +1,66 @@
+name: Landing
+
+# Marketing site (apps/landing). Static, no database and no secrets: it only links to the studio app.
+# Runs only when the landing or the shared packages it uses change. Production deploy on push to master.
+
+on:
+  pull_request:
+    paths: &paths
+      - "apps/landing/**"
+      - "packages/copy/**"
+      - "packages/tokens/**"
+      - "packages/ui-web/**"
+      - "package.json"
+      - "package-lock.json"
+      - "turbo.json"
+      - ".github/workflows/landing.yml"
+  push:
+    branches: [master]
+    paths: *paths
+
+permissions:
+  contents: read
+
+concurrency:
+  group: landing-${{ github.ref }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
+jobs:
+  checks:
+    name: Landing typecheck, tests and build
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    env:
+      NEXT_PUBLIC_APP_URL: https://app.example.com
+      NEXT_PUBLIC_SITE_URL: https://example.com
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: npm
+      - run: npm ci
+      - run: npm run check:boundaries
+      - run: npx turbo run typecheck test build --filter=@fluxo/landing...
+
+  deploy:
+    name: Deploy landing to Vercel (production)
+    needs: checks
+    if: github.event_name == 'push' && github.ref == 'refs/heads/master'
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    concurrency:
+      group: landing-production-deploy
+      cancel-in-progress: false
+    env:
+      VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
+      VERCEL_ORG_ID: ${{ secrets.VERCEL_ORG_ID }}
+      # A separate Vercel project (Root Directory = apps/landing), so the landing deploys on its own.
+      VERCEL_PROJECT_ID: ${{ secrets.VERCEL_LANDING_PROJECT_ID }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+      - name: Deploy (Vercel builds it with the project's own environment variables)
+        run: npx vercel@latest deploy --prod --yes --token="$VERCEL_TOKEN"

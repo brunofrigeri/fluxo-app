@@ -124,6 +124,7 @@ Opening or closing a modal and flipping a toggle never waits on the server: dial
 ## Monorepo layout
 
 ```
+apps/landing/    # @fluxo/landing: marketing site (static Next.js, no database). Port 3001 in dev
 apps/web/        # @fluxo/web: the Next.js studio app (everything described above; src/, tests/, vercel.json)
 packages/forms/  # @fluxo/forms: modalities and form definitions (no React)
 packages/copy/   # @fluxo/copy: shared pt-BR wording (status, calendar, periods, roles, option labels). Plain data
@@ -135,7 +136,7 @@ scripts/         # e2e-local.sh
 turbo.json       # Turborepo task graph (build, typecheck, test)
 ```
 
-Planned (see the architecture plan): `apps/landing` (marketing site), `apps/mobile` (Expo), and shared `packages/{api,config}`. Dependency rules (apps never import apps; base packages stay free of React, Next and Supabase) are enforced by `npm run check:boundaries`, which runs in CI. Each app deploys on its own; the dependency direction is always `apps -> packages`.
+Planned (see the architecture plan): `apps/mobile` (Expo), and shared `packages/{api,config}`. Dependency rules (apps never import apps; base packages stay free of React, Next and Supabase) are enforced by `npm run check:boundaries`, which runs in CI. Each app deploys on its own; the dependency direction is always `apps -> packages`.
 
 Paths in the sections below are relative to `apps/web` unless they start with `supabase/` or `packages/`.
 
@@ -185,7 +186,7 @@ Recurring slots become bookings through `select generate_bookings(8)`. The SQL f
 
 ## Tests and releases (CI)
 
-`.github/workflows/ci.yml` runs on every pull request and every push to `master`:
+`.github/workflows/web.yml` (the studio app) runs on every pull request that touches it and every push to `master`:
 
 1. **checks**: `npm run typecheck` and `npm test`.
 2. **e2e**: starts a throwaway local Supabase from `supabase/migrations` (never the production project), builds and starts the app, and runs the [e2e](https://e2e.com/docs) tests.
@@ -220,6 +221,8 @@ Recurring slots become bookings through `select generate_bookings(8)`. The SQL f
 | `VERCEL_ORG_ID` | `orgId` from `.vercel/project.json` after running `npx vercel link` once |
 | `VERCEL_PROJECT_ID` | `projectId` from the same file |
 | `AI_GATEWAY_API_KEY` | Optional. Only for agent steps in e2e tests |
+
+**Landing** (`.github/workflows/landing.yml`): typecheck, tests and build, then deploy to its own Vercel project on push to `master`. Setup: create a second Vercel project with Root Directory `apps/landing`, set `NEXT_PUBLIC_APP_URL` (the studio app's address) and `NEXT_PUBLIC_SITE_URL` (the landing's own address), and add the GitHub secret `VERCEL_LANDING_PROJECT_ID`. Each workflow only runs when its own files or shared packages change; because of that, mark required checks carefully (a path-filtered check that is skipped never reports).
 
 To make the gate strict, in GitHub: Settings > Branches > protect `master` and require the `Typecheck and unit tests` and `End-to-end tests` checks.
 

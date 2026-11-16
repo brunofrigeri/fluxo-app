@@ -1,19 +1,30 @@
-name: CI
+name: Web (studio app)
 
 # Pull requests: typecheck, unit tests and e2e.
 # Pushes to master: the same, and then (only if every job passed) the production deploy to Vercel.
 # Vercel's own Git auto-deploy for master is switched off in vercel.json, so this workflow is the only way a release goes out.
 
+# Runs only when something the web app depends on changes. Landing and mobile have their own workflows.
 on:
   pull_request:
+    paths: &paths
+      - "apps/web/**"
+      - "packages/**"
+      - "supabase/**"
+      - "scripts/**"
+      - "package.json"
+      - "package-lock.json"
+      - "turbo.json"
+      - ".github/workflows/web.yml"
   push:
     branches: [master]
+    paths: *paths
 
 permissions:
   contents: read
 
 concurrency:
-  group: ci-${{ github.ref }}
+  group: web-${{ github.ref }}
   cancel-in-progress: ${{ github.event_name == 'pull_request' }}
 
 env:
