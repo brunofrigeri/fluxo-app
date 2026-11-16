@@ -1,0 +1,100 @@
+name: Mobile
+
+# Expo app (apps/mobile). Checks run on every change to the app or the shared packages it uses.
+# Releases are separate from the web: JS-only changes ship as an EAS Update on push to master, store builds are
+# started by hand (workflow_dispatch) or by tagging mobile-v*. Both need an Expo project (`eas init`) and EXPO_TOKEN.
+
+on:
+  pull_request:
+    paths: &paths
+      - "apps/mobile/**"
+      - "packages/api/**"
+      - "packages/copy/**"
+      - "packages/domain/**"
+      - "packages/forms/**"
+      - "packages/tokens/**"
+      - "package.json"
+      - "package-lock.json"
+      - "turbo.json"
+      - ".github/workflows/mobile.yml"
+  push:
+    branches: [master]
+    paths: *paths
+    tags: ["mobile-v*"]
+  workflow_dispatch:
+    inputs:
+      profile:
+        description: "EAS build profile"
+        default: preview
+        type: choice
+        options: [preview, production]
+
+permissions:
+  contents: read
+
+concurrency:
+  group: mobile-${{ github.ref }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
+jobs:
+  checks:
+    name: Mobile typecheck, tests and bundle
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    env:
+      # Placeholders: the bundle only needs the variables to exist, nothing connects during `expo export`.
+      EXPO_PUBLIC_SUPABASE_URL: http://localhost:54321
+      EXPO_PUBLIC_SUPABASE_ANON_KEY: placeholder
+      CI: "1"
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: npm
+      - run: npm ci
+      - run: npm run check:boundaries
+      - run: npx turbo run typecheck test --filter=@fluxo/mobile...
+      - name: Bundle for iOS and Android (catches imports Metro cannot resolve)
+        working-directory: apps/mobile
+        run: npx expo export --platform ios --platform android
+
+  update:
+    name: Publish EAS Update (JS-only change)
+    needs: checks
+    if: github.event_name == 'push' && github.ref == 'refs/heads/master' && vars.EAS_ENABLED == 'true'
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    env:
+      EXPO_TOKEN: ${{ secrets.EXPO_TOKEN }}
+      EXPO_PUBLIC_SUPABASE_URL: ${{ vars.EXPO_PUBLIC_SUPABASE_URL }}
+      EXPO_PUBLIC_SUPABASE_ANON_KEY: ${{ vars.EXPO_PUBLIC_SUPABASE_ANON_KEY }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: npm
+      - run: npm ci
+      - name: Publish
+        working-directory: apps/mobile
+        run: npx eas-cli@latest update --branch production --message "${{ github.sha }}" --non-interactive
+
+  build:
+    name: EAS store build
+    needs: checks
+    if: (startsWith(github.ref, 'refs/tags/mobile-v') || github.event_name == 'workflow_dispatch') && vars.EAS_ENABLED == 'true'
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    env:
+      EXPO_TOKEN: ${{ secrets.EXPO_TOKEN }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: npm
+      - run: npm ci
+      - name: Build
+        working-directory: apps/mobile
+        run: npx eas-cli@latest build --platform all --profile ${{ inputs.profile || 'production' }} --non-interactive --no-wait

@@ -125,10 +125,12 @@ Opening or closing a modal and flipping a toggle never waits on the server: dial
 
 ```
 apps/landing/    # @fluxo/landing: marketing site (static Next.js, no database). Port 3001 in dev
+apps/mobile/     # @fluxo/mobile: Expo (React Native) app. Sign-in and today's sessions so far
 apps/web/        # @fluxo/web: the Next.js studio app (everything described above; src/, tests/, vercel.json)
 packages/forms/  # @fluxo/forms: modalities and form definitions (no React)
 packages/copy/   # @fluxo/copy: shared pt-BR wording (status, calendar, periods, roles, option labels). Plain data
 packages/domain/ # @fluxo/domain: pure logic (dates in America/Sao_Paulo, attendance rules, phone, age, wait-list schema)
+packages/api/    # @fluxo/api: Supabase queries and result types; take a Supabase client, so web (cookies) and mobile (AsyncStorage) share them
 packages/ui-web/ # @fluxo/ui-web: component CSS (fluxo.css), Icon, Logo; shared by the studio app and the landing
 packages/tokens/ # @fluxo/tokens: colors (light/dark), type scale, icon paths. tokens.css is generated from the TS
 supabase/        # migrations, seed and SQL tests, shared by every app
@@ -136,7 +138,7 @@ scripts/         # e2e-local.sh
 turbo.json       # Turborepo task graph (build, typecheck, test)
 ```
 
-Planned (see the architecture plan): `apps/mobile` (Expo), and shared `packages/{api,config}`. Dependency rules (apps never import apps; base packages stay free of React, Next and Supabase) are enforced by `npm run check:boundaries`, which runs in CI. Each app deploys on its own; the dependency direction is always `apps -> packages`.
+Planned: shared `packages/config` (tsconfig/eslint presets). Dependency rules (apps never import apps; base packages stay free of React, Next and Supabase) are enforced by `npm run check:boundaries`, which runs in CI. Each app deploys on its own; the dependency direction is always `apps -> packages`.
 
 Paths in the sections below are relative to `apps/web` unless they start with `supabase/` or `packages/`.
 
@@ -223,6 +225,8 @@ Recurring slots become bookings through `select generate_bookings(8)`. The SQL f
 | `AI_GATEWAY_API_KEY` | Optional. Only for agent steps in e2e tests |
 
 **Landing** (`.github/workflows/landing.yml`): typecheck, tests and build, then deploy to its own Vercel project on push to `master`. Setup: create a second Vercel project with Root Directory `apps/landing`, set `NEXT_PUBLIC_APP_URL` (the studio app's address) and `NEXT_PUBLIC_SITE_URL` (the landing's own address), and add the GitHub secret `VERCEL_LANDING_PROJECT_ID`. Each workflow only runs when its own files or shared packages change; because of that, mark required checks carefully (a path-filtered check that is skipped never reports).
+
+**Mobile** (`.github/workflows/mobile.yml`): typecheck, tests and a Metro bundle for iOS and Android on every change to the app or its shared packages. Releases never block or follow the web deploy: a JS-only change goes out as an EAS Update on push to `master`; store builds start on a `mobile-v*` tag or by hand. Both release jobs stay off until you run `eas init` in `apps/mobile`, add the secret `EXPO_TOKEN` and set the repository variable `EAS_ENABLED=true` (plus `EXPO_PUBLIC_SUPABASE_URL` / `EXPO_PUBLIC_SUPABASE_ANON_KEY` as variables). Run it locally: `cp apps/mobile/.env.example apps/mobile/.env`, then `npm run start -w @fluxo/mobile`. The mobile app is read-only for now (sign-in, today's sessions); accounts are created on the web or by invitation.
 
 To make the gate strict, in GitHub: Settings > Branches > protect `master` and require the `Typecheck and unit tests` and `End-to-end tests` checks.
 

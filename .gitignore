@@ -25,3 +25,8 @@ node_modules
 supabase/.branches/
 supabase/.temp/
 .turbo
+
+# Expo
+**/.expo
+**/expo-env.d.ts
+**/dist

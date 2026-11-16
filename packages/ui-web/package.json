@@ -9,7 +9,14 @@
     ".": "./src/index.ts",
     "./fluxo.css": "./fluxo.css"
   },
-  "sideEffects": ["*.css"],
-  "dependencies": { "@fluxo/copy": "*", "@fluxo/tokens": "*" },
-  "peerDependencies": { "react": "^19.0.0" }
+  "sideEffects": [
+    "*.css"
+  ],
+  "dependencies": {
+    "@fluxo/copy": "*",
+    "@fluxo/tokens": "*"
+  },
+  "peerDependencies": {
+    "react": "19.3.0"
+  }
 }

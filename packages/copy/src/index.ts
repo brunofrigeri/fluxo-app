@@ -7,3 +7,4 @@ export { periodLabels, waitlistMessages } from "./waitlist";
 export { roleLabels } from "./roles";
 export { SEX_OPTIONS, MARITAL_OPTIONS } from "./options";
 export { landing } from "./landing";
+export { auth } from "./auth";
