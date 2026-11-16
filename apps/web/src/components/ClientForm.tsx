@@ -4,8 +4,8 @@ import Link from "next/link";
 import { useState } from "react";
 import type { ModalityKey } from "@fluxo/forms";
 import type { FormState } from "@/app/(app)/clientes/actions";
-import { MARITAL_OPTIONS, SEX_OPTIONS } from "@/lib/client-fields";
-import { maskPhone } from "@/lib/phone";
+import { MARITAL_OPTIONS, SEX_OPTIONS } from "@fluxo/copy";
+import { maskPhone } from "@fluxo/domain";
 import { useFormAction } from "@/lib/useFormAction";
 import { SubmitButton } from "./SubmitButton";
 

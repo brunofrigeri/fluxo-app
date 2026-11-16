@@ -1,5 +1,5 @@
 import { createClient } from "@/lib/supabase/server";
-import { addDays, formatDayMonth, formatShort, formatWeekdayDate, hhmm, todayISO, weekdayOf } from "@/lib/dates";
+import { addDays, formatDayMonth, formatShort, formatWeekdayDate, hhmm, todayISO, weekdayOf } from "@fluxo/domain";
 import type { ModalityKey } from "@fluxo/forms";
 import { modalityKeyOf } from "@/lib/queries/agenda";
 import { isPresent, type AttendanceStatus } from "@/lib/status";

@@ -1,4 +1,4 @@
-// Choices for the shared client fields. Values match the check constraints in migration 0011.
+// Choices for the shared client fields. Values match the check constraints in migration 0011; labels are pt-BR.
 export const SEX_OPTIONS = [
   { value: "female", label: "Feminino" },
   { value: "male", label: "Masculino" },

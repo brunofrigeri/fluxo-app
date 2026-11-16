@@ -6,7 +6,7 @@ import { AddBookingDialog } from "./AddBookingDialog";
 import { AgendaEvent } from "./AgendaEvent";
 import { Icon } from "./Icon";
 import type { AgendaBooking } from "@/lib/queries/agenda";
-import { weekdayShortUpper, dayNumber } from "@/lib/dates";
+import { weekdayShortUpper, dayNumber } from "@fluxo/domain";
 import type { DialogClient } from "@/lib/queries/agenda";
 import type { Modality } from "@/lib/modalities";
 

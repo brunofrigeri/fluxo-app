@@ -1,4 +1,4 @@
-import { TZ } from "@/lib/dates";
+import { TZ } from "@fluxo/domain";
 
 // Builds the slot Wellhub should list for one class time on one date. Pure: no network, no database.
 

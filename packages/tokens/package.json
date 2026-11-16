@@ -12,5 +12,8 @@
   "scripts": {
     "generate": "tsx scripts/generate.ts",
     "test": "tsx --test test/*.test.ts"
-  }
+  },
+  "sideEffects": [
+    "*.css"
+  ]
 }

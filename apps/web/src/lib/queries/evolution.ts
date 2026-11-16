@@ -1,7 +1,7 @@
 import { getStudioModalities, type Modality } from "@/lib/modalities";
 import { createClient } from "@/lib/supabase/server";
 import type { SessionOption } from "@/components/EvolutionForm";
-import { addDays, formatWeekdayDate, hhmm, todayISO } from "@/lib/dates";
+import { addDays, formatWeekdayDate, hhmm, todayISO } from "@fluxo/domain";
 import { statusMeta, type AttendanceStatus } from "@/lib/status";
 
 export type ClientHead = { id: string; name: string; routine: string };

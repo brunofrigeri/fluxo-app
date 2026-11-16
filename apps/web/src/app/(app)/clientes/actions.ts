@@ -6,7 +6,7 @@ import { z } from "zod";
 import { getForm, isEmptyData, isModalityKey, parseData, type ModalityKey } from "@fluxo/forms";
 import { getAdmin } from "@/lib/admin";
 import { db, friendly } from "@/lib/auth";
-import { todayISO } from "@/lib/dates";
+import { todayISO } from "@fluxo/domain";
 import { getStudioModalities, getTeachableModalities, type Modality } from "@/lib/modalities";
 
 /** `saved` tells a dialog to close itself; those actions do not redirect, so the page stays where it is. */

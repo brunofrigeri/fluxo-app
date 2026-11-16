@@ -6,7 +6,7 @@ import { Icon } from "@/components/Icon";
 import { Seg } from "@/components/Seg";
 import { getAdmin } from "@/lib/admin";
 import { getInstructorsByModality, getStudioModalities, getTeachableModalities, pickModality } from "@/lib/modalities";
-import { dayNumber, minuteOfDayNow, todayISO } from "@/lib/dates";
+import { dayNumber, minuteOfDayNow, todayISO } from "@fluxo/domain";
 import {
   FIRST_HOUR, LAST_HOUR, getAgendaBookings, getDialogClients, monthCellLabel, parseView, rangeFor,
   type AgendaBooking, type View,

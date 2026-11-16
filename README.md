@@ -126,13 +126,15 @@ Opening or closing a modal and flipping a toggle never waits on the server: dial
 ```
 apps/web/        # @fluxo/web: the Next.js studio app (everything described above; src/, tests/, vercel.json)
 packages/forms/  # @fluxo/forms: modalities and form definitions (no React)
+packages/copy/   # @fluxo/copy: shared pt-BR wording (status, calendar, periods, roles, option labels). Plain data
+packages/domain/ # @fluxo/domain: pure logic (dates in America/Sao_Paulo, attendance rules, phone, age, wait-list schema)
 packages/tokens/ # @fluxo/tokens: colors (light/dark), type scale, icon paths. tokens.css is generated from the TS
 supabase/        # migrations, seed and SQL tests, shared by every app
 scripts/         # e2e-local.sh
 turbo.json       # Turborepo task graph (build, typecheck, test)
 ```
 
-Planned (see the architecture plan): `apps/landing` (marketing site), `apps/mobile` (Expo), and shared `packages/{copy,domain,ui-web,api,config}`. Each app deploys on its own; the dependency direction is always `apps -> packages`.
+Planned (see the architecture plan): `apps/landing` (marketing site), `apps/mobile` (Expo), and shared `packages/{ui-web,api,config}`. Dependency rules (apps never import apps; base packages stay free of React, Next and Supabase) are enforced by `npm run check:boundaries`, which runs in CI. Each app deploys on its own; the dependency direction is always `apps -> packages`.
 
 Paths in the sections below are relative to `apps/web` unless they start with `supabase/` or `packages/`.
 
@@ -229,8 +231,8 @@ To make the gate strict, in GitHub: Settings > Branches > protect `master` and r
 
 ## Notes
 
-- Dates are plain calendar dates in `America/Sao_Paulo`; see `src/lib/dates.ts`.
-- Status labels (pt-BR) and design classes are in `src/lib/status.ts`.
+- Dates are plain calendar dates in `America/Sao_Paulo`; see `packages/domain/src/dates.ts`.
+- Status codes and rules are in `@fluxo/domain`, their pt-BR labels in `@fluxo/copy`; `src/lib/status.ts` only adds the web's CSS classes. Put wording that more than one product needs in `@fluxo/copy`.
 - The Pilates evolution tree is defined in `packages/forms/src/apparatus.ts` and stored in `evolutions.data.apparatus` (jsonb).
 - Design tokens live in `packages/tokens` (the only place a color or icon path is defined). After editing them run `npm run generate -w @fluxo/tokens`; a test fails if `tokens.css` is stale. Web and landing load `@fluxo/tokens/tokens.css`, mobile imports the TS. Component styles are `src/styles/fluxo.css` (it consumes the tokens).
 - `next.config.ts` sets `experimental.staleTimes.dynamic = 30` so revisits within 30s reuse the cached page instead of re-showing the loading fallback. Mutations still refresh through `revalidatePath()`.

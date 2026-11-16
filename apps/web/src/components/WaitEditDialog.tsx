@@ -2,7 +2,7 @@
 
 import { useCallback, useState } from "react";
 import { updateWaitEntry } from "@/app/(app)/espera/actions";
-import type { Period } from "@/lib/waitlist";
+import type { Period } from "@fluxo/domain";
 import { Icon } from "./Icon";
 import { Modal } from "./Modal";
 import { WaitForm } from "./WaitForm";

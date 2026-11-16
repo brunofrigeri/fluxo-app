@@ -4,7 +4,7 @@ import { revalidatePath } from "next/cache";
 import { getAdmin } from "@/lib/admin";
 import { db, friendly } from "@/lib/auth";
 import { getStudioModalities } from "@/lib/modalities";
-import { waitSchema } from "@/lib/waitlist";
+import { waitSchema } from "@fluxo/domain";
 
 export type WaitState = { error?: string; saved?: number } | undefined;
 

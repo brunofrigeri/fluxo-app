@@ -5,8 +5,8 @@ import { ModalityTag } from "@/components/ModalityTag";
 import { Seg } from "@/components/Seg";
 import { StatusMenu } from "@/components/StatusMenu";
 import { getAdmin } from "@/lib/admin";
-import { initialsOf } from "@/lib/age";
-import { formatLong, greeting } from "@/lib/dates";
+import { initialsOf } from "@fluxo/domain";
+import { formatLong, greeting } from "@fluxo/domain";
 import { getStudioModalities, pickModality } from "@/lib/modalities";
 import { getHomeData } from "@/lib/queries/home";
 

@@ -1,3 +1,4 @@
+import { roleLabels } from "@fluxo/copy";
 import type { Metadata } from "next";
 import { redirect } from "next/navigation";
 import { ConfirmButton } from "@/components/ConfirmButton";
@@ -5,7 +6,7 @@ import { Icon } from "@/components/Icon";
 import { ModalityTag } from "@/components/ModalityTag";
 import { UserDialog } from "@/components/UserDialog";
 import { getAdmin } from "@/lib/admin";
-import { initialsOf } from "@/lib/age";
+import { initialsOf } from "@fluxo/domain";
 import { getStudioModalities } from "@/lib/modalities";
 import { createClient } from "@/lib/supabase/server";
 import { removeUser } from "./actions";
@@ -13,7 +14,7 @@ import { removeUser } from "./actions";
 export const metadata: Metadata = { title: "Usuários" };
 export const dynamic = "force-dynamic";
 
-const ROLE_LABEL: Record<string, string> = { admin: "Administrador", instructor: "Instrutor" };
+const ROLE_LABEL: Record<string, string> = roleLabels;
 
 export default async function UsuariosPage() {
   const me = await getAdmin();

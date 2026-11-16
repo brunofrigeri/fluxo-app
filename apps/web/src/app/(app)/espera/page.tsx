@@ -6,9 +6,9 @@ import { ModalityTag } from "@/components/ModalityTag";
 import { WaitEditDialog } from "@/components/WaitEditDialog";
 import { WaitForm } from "@/components/WaitForm";
 import { getStudioModalities } from "@/lib/modalities";
-import { formatBR, todayISO } from "@/lib/dates";
+import { formatBR, todayISO } from "@fluxo/domain";
 import { createClient } from "@/lib/supabase/server";
-import { PERIODS, PERIOD_LABELS, PERIOD_SLUGS, periodFromSlug, type Period } from "@/lib/waitlist";
+import { PERIODS, PERIOD_LABELS, PERIOD_SLUGS, periodFromSlug, type Period } from "@fluxo/domain";
 import { addToWaitList, removeFromWaitList } from "./actions";
 
 export const metadata: Metadata = { title: "Lista de espera" };

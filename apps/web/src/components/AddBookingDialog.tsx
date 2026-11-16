@@ -4,8 +4,8 @@ import { useEffect, useMemo, useState, useTransition } from "react";
 import { createBooking } from "@/app/(app)/actions";
 import type { DialogClient } from "@/lib/queries/agenda";
 import type { Modality } from "@/lib/modalities";
-import { initialsOf } from "@/lib/age";
-import { FIRST_HOUR, LAST_HOUR } from "@/lib/agenda-config";
+import { initialsOf } from "@fluxo/domain";
+import { FIRST_HOUR, LAST_HOUR } from "@fluxo/domain";
 import { Icon } from "./Icon";
 
 type Props = {

@@ -5,7 +5,7 @@ import { z } from "zod";
 import { getAdmin } from "@/lib/admin";
 import { db, friendly } from "@/lib/auth";
 import { getForm, isModalityKey, summarize } from "@fluxo/forms";
-import { formatBR } from "@/lib/dates";
+import { formatBR } from "@fluxo/domain";
 import { getDialogClients, type DialogClient } from "@/lib/queries/agenda";
 import { isStatus, type AttendanceStatus } from "@/lib/status";
 

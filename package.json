@@ -7,8 +7,9 @@
     "dev": "turbo run dev --filter=@fluxo/web",
     "build": "turbo run build",
     "typecheck": "turbo run typecheck",
-    "test": "turbo run test",
-    "e2e:local": "npm run e2e:local -w @fluxo/web --"
+    "test": "npm run check:boundaries && turbo run test",
+    "e2e:local": "npm run e2e:local -w @fluxo/web --",
+    "check:boundaries": "node scripts/check-boundaries.mjs"
   },
   "devDependencies": {
     "turbo": "^2.5.0"

@@ -1,6 +1,6 @@
 import { createClient } from "@/lib/supabase/server";
-import { addDays, addMonths, dayNumber, formatBR, formatDayMonth, formatLong, formatMonthYear, hhmm, isValidISO, mondayOf, monthName, monthShort, todayISO } from "@/lib/dates";
-import { FIRST_HOUR, LAST_HOUR } from "@/lib/agenda-config";
+import { addDays, addMonths, dayNumber, formatBR, formatDayMonth, formatLong, formatMonthYear, hhmm, isValidISO, mondayOf, monthName, monthShort, todayISO } from "@fluxo/domain";
+import { FIRST_HOUR, LAST_HOUR } from "@fluxo/domain";
 import type { ModalityKey } from "@fluxo/forms";
 import type { AttendanceStatus } from "@/lib/status";
 

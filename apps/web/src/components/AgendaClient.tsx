@@ -4,7 +4,7 @@ import Link from "next/link";
 import { useMemo, useState } from "react";
 import type { AgendaBooking, DialogClient } from "@/lib/queries/agenda";
 import type { Modality } from "@/lib/modalities";
-import { dayNumber } from "@/lib/dates";
+import { dayNumber } from "@fluxo/domain";
 import { statusMeta, type AttendanceStatus } from "@/lib/status";
 import { AgendaBoard } from "./AgendaBoard";
 

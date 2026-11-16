@@ -3,7 +3,7 @@
 import { useCallback, useState, useTransition } from "react";
 import { editableData, getForm, type ModalityKey, type RecordData } from "@fluxo/forms";
 import { deleteEvaluation, saveEvaluation } from "@/app/(app)/clientes/actions";
-import { formatBR } from "@/lib/dates";
+import { formatBR } from "@fluxo/domain";
 import { EvaluationForm } from "./EvaluationForm";
 import { Icon } from "./Icon";
 import { Modal } from "./Modal";

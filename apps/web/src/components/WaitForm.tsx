@@ -3,7 +3,7 @@
 import { useEffect, useRef } from "react";
 import type { WaitState } from "@/app/(app)/espera/actions";
 import { useFormAction } from "@/lib/useFormAction";
-import { PERIODS, PERIOD_LABELS, type Period } from "@/lib/waitlist";
+import { PERIODS, PERIOD_LABELS, type Period } from "@fluxo/domain";
 import { SubmitButton } from "./SubmitButton";
 
 type Props = {

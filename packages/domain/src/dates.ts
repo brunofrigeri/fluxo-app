@@ -1,8 +1,8 @@
+import { greetings, monthName as MONTH_NAME, weekdayName as WEEKDAY_NAME, weekdayShort as WEEKDAY_SHORT, weekdaySuffix } from "@fluxo/copy";
+
 // All dates in Fluxo are plain calendar dates ("YYYY-MM-DD") in the studio's time zone.
 export const TZ = "America/Sao_Paulo";
 
-const WEEKDAY_SHORT = ["Dom", "Seg", "Ter", "Qua", "Qui", "Sex", "Sáb"];
-const WEEKDAY_NAME = ["Domingo", "Segunda", "Terça", "Quarta", "Quinta", "Sexta", "Sábado"];
 
 export function todayISO(now: Date = new Date()): string {
   return new Intl.DateTimeFormat("en-CA", { timeZone: TZ }).format(now);
@@ -56,7 +56,7 @@ export function formatWeekdayDate(iso: string): string {
 /** Segunda-feira, 05/10/2026 */
 export function formatLong(iso: string): string {
   const name = WEEKDAY_NAME[weekdayOf(iso)];
-  const suffix = weekdayOf(iso) === 0 || weekdayOf(iso) === 6 ? "" : "-feira";
+  const suffix = weekdayOf(iso) === 0 || weekdayOf(iso) === 6 ? "" : weekdaySuffix;
   return `${name}${suffix}, ${formatBR(iso)}`;
 }
 
@@ -64,8 +64,6 @@ export function formatLong(iso: string): string {
 export function hhmm(time: string): string {
   return time.slice(0, 5);
 }
-
-const MONTH_NAME = ["janeiro", "fevereiro", "março", "abril", "maio", "junho", "julho", "agosto", "setembro", "outubro", "novembro", "dezembro"];
 
 export function monthName(iso: string): string {
   return MONTH_NAME[Number(iso.slice(5, 7)) - 1];
@@ -113,7 +111,7 @@ export function weekdayName(index: number): string {
 
 export function greeting(now: Date = new Date()): string {
   const h = hourNow(now);
-  if (h < 12) return "Bom dia";
-  if (h < 18) return "Boa tarde";
-  return "Boa noite";
+  if (h < 12) return greetings.morning;
+  if (h < 18) return greetings.afternoon;
+  return greetings.evening;
 }

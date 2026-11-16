@@ -31,6 +31,7 @@ jobs:
           node-version: 24 # the e2e runner needs Node 24.8+
           cache: npm
       - run: npm ci
+      - run: npm run check:boundaries
       - run: npm run typecheck
       - run: npm test
 

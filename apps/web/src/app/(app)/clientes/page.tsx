@@ -4,7 +4,7 @@ import { Icon } from "@/components/Icon";
 import { ModalityTag } from "@/components/ModalityTag";
 import { Seg } from "@/components/Seg";
 import { getStudioModalities } from "@/lib/modalities";
-import { formatShort, hhmm, todayISO } from "@/lib/dates";
+import { formatShort, hhmm, todayISO } from "@fluxo/domain";
 import { createClient } from "@/lib/supabase/server";
 
 export const metadata: Metadata = { title: "Clientes" };
