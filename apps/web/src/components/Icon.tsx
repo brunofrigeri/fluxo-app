@@ -1,4 +1,4 @@
-// Icons come from the design system: stroke masks defined in src/styles/fluxo.css.
+// Icons come from the design system: stroke masks generated from packages/tokens (tokens.css).
 export type IconName =
   | "home" | "calendar" | "users" | "check" | "calx" | "x" | "repeat" | "chevl" | "chevr" | "chevd"
   | "plus" | "search" | "eye" | "eyeoff" | "edit" | "logout" | "cake" | "alert" | "clock" | "archive"

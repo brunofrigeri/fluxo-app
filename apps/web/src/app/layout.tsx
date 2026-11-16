@@ -1,4 +1,5 @@
 import type { Metadata, Viewport } from "next";
+import "@fluxo/tokens/tokens.css";
 import "../styles/fluxo.css";
 import "./globals.css";
 

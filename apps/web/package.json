@@ -13,6 +13,7 @@
   },
   "dependencies": {
     "@fluxo/forms": "*",
+    "@fluxo/tokens": "*",
     "@supabase/ssr": "^0.6.1",
     "@supabase/supabase-js": "^2.49.0",
     "next": "^15.5.0",

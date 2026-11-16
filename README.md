@@ -126,12 +126,13 @@ Opening or closing a modal and flipping a toggle never waits on the server: dial
 ```
 apps/web/        # @fluxo/web: the Next.js studio app (everything described above; src/, tests/, vercel.json)
 packages/forms/  # @fluxo/forms: modalities and form definitions (no React)
+packages/tokens/ # @fluxo/tokens: colors (light/dark), type scale, icon paths. tokens.css is generated from the TS
 supabase/        # migrations, seed and SQL tests, shared by every app
 scripts/         # e2e-local.sh
 turbo.json       # Turborepo task graph (build, typecheck, test)
 ```
 
-Planned (see the architecture plan): `apps/landing` (marketing site), `apps/mobile` (Expo), and shared `packages/{tokens,copy,domain,ui-web,api,config}`. Each app deploys on its own; the dependency direction is always `apps -> packages`.
+Planned (see the architecture plan): `apps/landing` (marketing site), `apps/mobile` (Expo), and shared `packages/{copy,domain,ui-web,api,config}`. Each app deploys on its own; the dependency direction is always `apps -> packages`.
 
 Paths in the sections below are relative to `apps/web` unless they start with `supabase/` or `packages/`.
 
@@ -231,6 +232,6 @@ To make the gate strict, in GitHub: Settings > Branches > protect `master` and r
 - Dates are plain calendar dates in `America/Sao_Paulo`; see `src/lib/dates.ts`.
 - Status labels (pt-BR) and design classes are in `src/lib/status.ts`.
 - The Pilates evolution tree is defined in `packages/forms/src/apparatus.ts` and stored in `evolutions.data.apparatus` (jsonb).
-- Design tokens and components are `src/styles/fluxo.css`, copied unchanged from the design canvas.
+- Design tokens live in `packages/tokens` (the only place a color or icon path is defined). After editing them run `npm run generate -w @fluxo/tokens`; a test fails if `tokens.css` is stale. Web and landing load `@fluxo/tokens/tokens.css`, mobile imports the TS. Component styles are `src/styles/fluxo.css` (it consumes the tokens).
 - `next.config.ts` sets `experimental.staleTimes.dynamic = 30` so revisits within 30s reuse the cached page instead of re-showing the loading fallback. Mutations still refresh through `revalidatePath()`.
 - This is health data: keep the repository private, keep Supabase backups on, and keep the service-role key out of the browser and out of Git.
