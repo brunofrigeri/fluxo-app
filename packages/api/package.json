@@ -1,0 +1,12 @@
+{
+  "name": "@fluxo/api",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Supabase queries and their result types, shared by web and mobile. Pass in a Supabase client; no React, no platform APIs.",
+  "main": "src/index.ts",
+  "types": "src/index.ts",
+  "sideEffects": false,
+  "scripts": { "test": "tsx --test test/*.test.ts" },
+  "dependencies": { "@fluxo/domain": "*", "@fluxo/forms": "*" },
+  "peerDependencies": { "@supabase/supabase-js": "^2.49.0" }
+}

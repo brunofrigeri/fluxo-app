@@ -13,6 +13,7 @@ const ALLOWED = {
   tokens: { workspace: [], npm: [] },
   copy: { workspace: [], npm: [] },
   forms: { workspace: [], npm: ["zod"] },
+  api: { workspace: ["domain", "forms"], npm: ["@supabase/supabase-js"] },
   domain: { workspace: ["copy"], npm: ["zod"] },
   // The only shared package that may use React (web only; mobile has its own native kit).
   "ui-web": { workspace: ["copy", "tokens"], npm: ["react"] },
