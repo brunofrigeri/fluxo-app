@@ -1,0 +1,22 @@
+{
+  "name": "@fluxo/ui-web",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Web UI shared by the studio app and the landing page: component CSS (fluxo.css) and React components. Colors and icons come from @fluxo/tokens.",
+  "main": "src/index.ts",
+  "types": "src/index.ts",
+  "exports": {
+    ".": "./src/index.ts",
+    "./fluxo.css": "./fluxo.css"
+  },
+  "sideEffects": [
+    "*.css"
+  ],
+  "dependencies": {
+    "@fluxo/copy": "*",
+    "@fluxo/tokens": "*"
+  },
+  "peerDependencies": {
+    "react": "19.3.0"
+  }
+}

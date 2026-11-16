@@ -1,6 +1,6 @@
 # Fluxo: working rules
 
-Next.js 15 (App Router) + Supabase, pt-BR UI. Shared form definitions live in `packages/forms`. Run `npm test` and `npm run typecheck` before finishing a change.
+Monorepo (npm workspaces + Turborepo). The studio app is `apps/web` (Next.js 15 App Router + Supabase, pt-BR UI). Shared form definitions live in `packages/forms`; the database lives in `supabase/` at the root. Other apps: `apps/landing` (marketing, static) and `apps/mobile` (Expo). Shared packages: `tokens` (the only place colors and icon paths live), `copy` (shared pt-BR wording), `domain` (pure logic), `forms`, `api` (queries that take a Supabase client), `ui-web` (web only). Dependencies only point `apps -> packages` and are checked by `npm run check:boundaries`. Run `npm test` and `npm run typecheck` from the root before finishing a change.
 
 ## Interactions must be instant
 
@@ -17,4 +17,6 @@ Nothing the user taps may wait on the network before it responds. Slow modals an
 
 - Admins are also instructors by default: they teach every modality the studio offers unless unticked on Users.
 - Business rules live in the database (triggers, RLS) and have a test in `supabase/tests`. Do not enforce them only in the UI.
-- Never put the service-role key in client code.
+- Never put the service-role key in client code (web client components, the landing, or anything in `apps/mobile`: `EXPO_PUBLIC_*` values are bundled into the app).
+- Colors and icons come from `@fluxo/tokens`, wording used by more than one product from `@fluxo/copy`. Do not hard-code them per app.
+- The instant-interaction rules above apply to the mobile app too (optimistic updates, no spinners on taps).

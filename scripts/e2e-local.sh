@@ -1,12 +1,13 @@
 #!/usr/bin/env bash
 # Runs the e2e tests on your machine against a THROWAWAY local Supabase (Docker), never your hosted project.
 #
-#   npm run e2e:local            # all tests
+#   npm run e2e:local            # all tests (from the repo root)
 #   npm run e2e:local -- tests/auth.e2e.ts
 #
 # Needs Docker running. The first run downloads the Supabase images (a few GB).
 set -euo pipefail
-cd "$(dirname "$0")/.."
+ROOT="$(cd "$(dirname "$0")/.." && pwd)"
+cd "$ROOT/apps/web"
 
 PORT=3000
 if lsof -nP -iTCP:$PORT -sTCP:LISTEN >/dev/null 2>&1; then
@@ -14,7 +15,7 @@ if lsof -nP -iTCP:$PORT -sTCP:LISTEN >/dev/null 2>&1; then
   exit 1
 fi
 
-SUPABASE="npx --yes supabase"
+SUPABASE="npx --yes supabase --workdir $ROOT"
 $SUPABASE start -x studio,imgproxy,edge-runtime,logflare,vector,supavisor >/dev/null
 eval "$($SUPABASE status -o env)"
 

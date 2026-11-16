@@ -121,12 +121,33 @@ The functions that write bookings are callable only by the server (service role)
 
 Opening or closing a modal and flipping a toggle never waits on the server: dialogs are client state, small mutations are optimistic. The rule is in `CLAUDE.md` / `AGENTS.md`.
 
+## Monorepo layout
+
+```
+apps/landing/    # @fluxo/landing: marketing site (static Next.js, no database). Port 3001 in dev
+apps/mobile/     # @fluxo/mobile: Expo (React Native) app. Sign-in and today's sessions so far
+apps/web/        # @fluxo/web: the Next.js studio app (everything described above; src/, tests/, vercel.json)
+packages/forms/  # @fluxo/forms: modalities and form definitions (no React)
+packages/copy/   # @fluxo/copy: shared pt-BR wording (status, calendar, periods, roles, option labels). Plain data
+packages/domain/ # @fluxo/domain: pure logic (dates in America/Sao_Paulo, attendance rules, phone, age, wait-list schema)
+packages/api/    # @fluxo/api: Supabase queries and result types; take a Supabase client, so web (cookies) and mobile (AsyncStorage) share them
+packages/ui-web/ # @fluxo/ui-web: component CSS (fluxo.css), Icon, Logo; shared by the studio app and the landing
+packages/tokens/ # @fluxo/tokens: colors (light/dark), type scale, icon paths. tokens.css is generated from the TS
+supabase/        # migrations, seed and SQL tests, shared by every app
+scripts/         # e2e-local.sh
+turbo.json       # Turborepo task graph (build, typecheck, test)
+```
+
+Planned: shared `packages/config` (tsconfig/eslint presets). Dependency rules (apps never import apps; base packages stay free of React, Next and Supabase) are enforced by `npm run check:boundaries`, which runs in CI. Each app deploys on its own; the dependency direction is always `apps -> packages`.
+
+Paths in the sections below are relative to `apps/web` unless they start with `supabase/` or `packages/`.
+
 ## Workspaces and tests
 
-The repo is an npm workspace: the Next.js app at the root and shared packages in `packages/*` (today `@fluxo/forms`). `next.config.ts` lists it in `transpilePackages`. The package manager is npm (`package-lock.json`).
+The repo is an npm workspace driven by Turborepo. `apps/web/next.config.ts` lists `@fluxo/forms` in `transpilePackages`. The package manager is npm (`package-lock.json`).
 
 ```bash
-npm test          # form definitions, SQL migrations + RLS (in-process Postgres via PGlite), form rendering
+npm test          # (from the repo root) form definitions, SQL migrations + RLS (in-process Postgres via PGlite), form rendering
 npm run typecheck
 ```
 
@@ -135,9 +156,9 @@ The SQL tests (`supabase/tests/`) run every migration on an in-process Postgres 
 ## Run locally
 
 ```bash
-cp .env.example .env.local   # fill in the three Supabase values
-npm install
-npm run dev
+cd apps/web && cp .env.example .env.local   # fill in the three Supabase values
+cd ../.. && npm install
+npm run dev                  # starts @fluxo/web
 ```
 
 ## Environment variables
@@ -167,13 +188,13 @@ Recurring slots become bookings through `select generate_bookings(8)`. The SQL f
 
 ## Tests and releases (CI)
 
-`.github/workflows/ci.yml` runs on every pull request and every push to `master`:
+`.github/workflows/web.yml` (the studio app) runs on every pull request that touches it and every push to `master`:
 
 1. **checks**: `npm run typecheck` and `npm test`.
 2. **e2e**: starts a throwaway local Supabase from `supabase/migrations` (never the production project), builds and starts the app, and runs the [e2e](https://e2e.com/docs) tests.
 3. **deploy** (push to `master` only): runs **only if checks and e2e passed**, and deploys to Vercel production with the Vercel CLI.
 
-`vercel.json` turns off Vercel's own auto-deploy for `master`, so a release can only go out through this workflow. Pull-request preview deployments from Vercel still work.
+`apps/web/vercel.json` turns off Vercel's own auto-deploy for `master`, so a release can only go out through this workflow. Pull-request preview deployments from Vercel still work.
 
 **Running the e2e tests on your machine:** `npm run e2e:local` (needs Docker). It starts a throwaway local Supabase from `supabase/migrations`, builds the app against it, runs the tests and cleans up. Run one file with `npm run e2e:local -- tests/auth.e2e.ts`.
 
@@ -203,20 +224,24 @@ Recurring slots become bookings through `select generate_bookings(8)`. The SQL f
 | `VERCEL_PROJECT_ID` | `projectId` from the same file |
 | `AI_GATEWAY_API_KEY` | Optional. Only for agent steps in e2e tests |
 
+**Landing** (`.github/workflows/landing.yml`): typecheck, tests and build, then deploy to its own Vercel project on push to `master`. Setup: create a second Vercel project with Root Directory `apps/landing`, set `NEXT_PUBLIC_APP_URL` (the studio app's address) and `NEXT_PUBLIC_SITE_URL` (the landing's own address), and add the GitHub secret `VERCEL_LANDING_PROJECT_ID`. Each workflow only runs when its own files or shared packages change; because of that, mark required checks carefully (a path-filtered check that is skipped never reports).
+
+**Mobile** (`.github/workflows/mobile.yml`): typecheck, tests and a Metro bundle for iOS and Android on every change to the app or its shared packages. Releases never block or follow the web deploy: a JS-only change goes out as an EAS Update on push to `master`; store builds start on a `mobile-v*` tag or by hand. Both release jobs stay off until you run `eas init` in `apps/mobile`, add the secret `EXPO_TOKEN` and set the repository variable `EAS_ENABLED=true` (plus `EXPO_PUBLIC_SUPABASE_URL` / `EXPO_PUBLIC_SUPABASE_ANON_KEY` as variables). Run it locally: `cp apps/mobile/.env.example apps/mobile/.env`, then `npm run start -w @fluxo/mobile`. The mobile app is read-only for now (sign-in, today's sessions); accounts are created on the web or by invitation.
+
 To make the gate strict, in GitHub: Settings > Branches > protect `master` and require the `Typecheck and unit tests` and `End-to-end tests` checks.
 
 ## Deploy on Vercel
 
-1. Push this folder to a private Git repository and import it in Vercel.
+1. Push this repo to a private Git repository and import it in Vercel with **Root Directory = `apps/web`** (keep "Include source files outside of the Root Directory" on, so `packages/*` is available).
 2. Add the three environment variables above in Vercel (Production). The service-role key is a server-only secret. The deploy job uploads the code and Vercel builds it with these variables (so variables marked Sensitive work; do not switch the job to `vercel pull` + `vercel build`, which cannot read them).
 3. In Supabase, Authentication > URL Configuration, set the Site URL to your Vercel domain.
 4. Add the GitHub secrets from the table above. After that, merging to `master` releases through CI.
 
 ## Notes
 
-- Dates are plain calendar dates in `America/Sao_Paulo`; see `src/lib/dates.ts`.
-- Status labels (pt-BR) and design classes are in `src/lib/status.ts`.
+- Dates are plain calendar dates in `America/Sao_Paulo`; see `packages/domain/src/dates.ts`.
+- Status codes and rules are in `@fluxo/domain`, their pt-BR labels in `@fluxo/copy`; `src/lib/status.ts` only adds the web's CSS classes. Put wording that more than one product needs in `@fluxo/copy`.
 - The Pilates evolution tree is defined in `packages/forms/src/apparatus.ts` and stored in `evolutions.data.apparatus` (jsonb).
-- Design tokens and components are `src/styles/fluxo.css`, copied unchanged from the design canvas.
+- Design tokens live in `packages/tokens` (the only place a color or icon path is defined). After editing them run `npm run generate -w @fluxo/tokens`; a test fails if `tokens.css` is stale. Web and landing load `@fluxo/tokens/tokens.css`, mobile imports the TS. Component styles are `packages/ui-web/fluxo.css` (it consumes the tokens), shared with the landing page.
 - `next.config.ts` sets `experimental.staleTimes.dynamic = 30` so revisits within 30s reuse the cached page instead of re-showing the loading fallback. Mutations still refresh through `revalidatePath()`.
 - This is health data: keep the repository private, keep Supabase backups on, and keep the service-role key out of the browser and out of Git.
