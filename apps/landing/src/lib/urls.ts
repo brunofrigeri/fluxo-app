@@ -20,6 +20,8 @@ export function readUrls(env: Env) {
     signInUrl: `${app}/login`,
     termsUrl: optional(env.NEXT_PUBLIC_TERMS_URL),
     privacyUrl: optional(env.NEXT_PUBLIC_PRIVACY_URL),
+    appStoreUrl: optional(env.NEXT_PUBLIC_APP_STORE_URL),
+    playStoreUrl: optional(env.NEXT_PUBLIC_PLAY_STORE_URL),
     contact: email ? { label: email, href: `mailto:${email}` } : null,
   };
 }
@@ -31,6 +33,8 @@ const urls = readUrls({
   NEXT_PUBLIC_TERMS_URL: process.env.NEXT_PUBLIC_TERMS_URL,
   NEXT_PUBLIC_PRIVACY_URL: process.env.NEXT_PUBLIC_PRIVACY_URL,
   NEXT_PUBLIC_CONTACT_EMAIL: process.env.NEXT_PUBLIC_CONTACT_EMAIL,
+  NEXT_PUBLIC_APP_STORE_URL: process.env.NEXT_PUBLIC_APP_STORE_URL,
+  NEXT_PUBLIC_PLAY_STORE_URL: process.env.NEXT_PUBLIC_PLAY_STORE_URL,
 });
 
-export const { appUrl: APP_URL, siteUrl: SITE_URL, signUpUrl, signInUrl, termsUrl, privacyUrl, contact } = urls;
+export const { appUrl: APP_URL, siteUrl: SITE_URL, signUpUrl, signInUrl, termsUrl, privacyUrl, contact, appStoreUrl, playStoreUrl } = urls;

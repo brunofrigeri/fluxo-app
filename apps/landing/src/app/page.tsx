@@ -1,4 +1,5 @@
 import { Footer, FinalCta, Header } from "@/components/Chrome";
+import { AppSection } from "@/components/AppSection";
 import { Audience, Features } from "@/components/Features";
 import { Hero } from "@/components/Hero";
 import { Pricing } from "@/components/Pricing";
@@ -13,6 +14,7 @@ export default function Home() {
         <main id="top">
           <Hero />
           <Audience />
+          <AppSection />
           <Features />
           <Steps />
           <Pricing signUpUrl={signUpUrl} />

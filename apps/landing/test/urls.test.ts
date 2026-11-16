@@ -37,3 +37,23 @@ test("the plans are consistent: one highlighted, annual is 10 months of the mont
 test("no placeholder text ships in the page copy", () => {
   assert.doesNotMatch(JSON.stringify(landing), /\[[A-ZÀ-Ú\s-]+\]|\blorem\b|\bTODO\b/);
 });
+
+import { destinationFor, platformOf } from "../src/lib/stores";
+
+test("store links are optional and read from the environment", () => {
+  assert.equal(readUrls({}).appStoreUrl, null);
+  assert.equal(readUrls({ NEXT_PUBLIC_PLAY_STORE_URL: "https://play.google.com/x" }).playStoreUrl, "https://play.google.com/x");
+});
+
+test("each phone is sent to its own store, everything else to the web app", () => {
+  const t = { appStoreUrl: "https://apps.apple.com/x", playStoreUrl: "https://play.google.com/x", webUrl: "https://app.example.com/login" };
+  const iphone = "Mozilla/5.0 (iPhone; CPU iPhone OS 17_0 like Mac OS X) AppleWebKit/605.1.15";
+  const pixel = "Mozilla/5.0 (Linux; Android 14; Pixel 8) AppleWebKit/537.36 Chrome/120 Mobile";
+  const mac = "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/605.1.15";
+  assert.equal(destinationFor(platformOf(iphone), t), t.appStoreUrl);
+  assert.equal(destinationFor(platformOf(pixel), t), t.playStoreUrl);
+  assert.equal(destinationFor(platformOf(mac), t), t.webUrl);
+  assert.equal(destinationFor(platformOf(null), t), t.webUrl);
+  // A store that is not published yet falls back to the web app instead of a dead link.
+  assert.equal(destinationFor("ios", { ...t, appStoreUrl: null }), t.webUrl);
+});

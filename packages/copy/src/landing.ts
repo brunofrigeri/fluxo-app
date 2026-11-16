@@ -43,6 +43,15 @@ export const landing = {
       ] as { name: string; status: DemoStatus }[],
     },
   },
+  app: {
+    eyebrow: "No celular e no navegador",
+    title: "Leve o Fluxo no bolso ou abra no computador.",
+    text: "Baixe o app para marcar presença em pé, ao lado do aparelho, ou entre pelo navegador, sem instalar nada.",
+    appStore: { kicker: "Baixar na", name: "App Store" },
+    googlePlay: { kicker: "Disponível no", name: "Google Play" },
+    storesLabel: "Baixar o app",
+    web: "Acessar pelo navegador",
+  },
   audience: [
     { icon: "users", title: "Profissional autônomo", text: "Você atende, agenda e registra sozinha ou sozinho. O Fluxo tira a rotina do caderno e das planilhas, sem complicar." },
     { icon: "calendar", title: "Estúdio com equipe", text: "Turmas pequenas, vários profissionais, horários cheios. Veja a ocupação de cada horário e saiba quem vem e quem faltou." },

@@ -1,6 +1,7 @@
 import { landing } from "@fluxo/copy";
 import { Icon } from "@fluxo/ui-web";
-import { signUpUrl } from "@/lib/urls";
+import { appStoreUrl, playStoreUrl, signUpUrl } from "@/lib/urls";
+import { StoreButtons } from "./GetApp";
 import { StatusPill } from "./Status";
 
 export function Hero() {
@@ -21,6 +22,7 @@ export function Hero() {
             <a className="btn pri lp-btn" href={signUpUrl}>{h.primary}</a>
             <a className="btn lp-btn" href="#planos">{h.secondary}</a>
           </div>
+          <StoreButtons appStoreUrl={appStoreUrl} playStoreUrl={playStoreUrl} />
           <p className="t-small muted lp-assure">
             <Icon name="check" size={16} className="lp-accent" />
             {h.assurances.map((a, i) => (
