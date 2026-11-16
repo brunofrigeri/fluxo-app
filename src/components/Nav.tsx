@@ -4,16 +4,16 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { Icon, type IconName } from "./Icon";
 
-const ITEMS: { href: string; label: string; icon: IconName }[] = [
+const ITEMS: { href: string; label: string; short?: string; icon: IconName }[] = [
   { href: "/", label: "Home", icon: "home" },
   { href: "/agenda", label: "Agenda", icon: "calendar" },
   { href: "/clientes", label: "Clientes", icon: "users" },
-  { href: "/espera", label: "Lista de espera", icon: "clock" },
+  { href: "/espera", label: "Lista de espera", short: "Espera", icon: "clock" },
 ];
 
-const ADMIN_ITEMS: { href: string; label: string; icon: IconName }[] = [
-  { href: "/usuarios", label: "Usuários", icon: "users" },
-  { href: "/configuracoes", label: "Configurações", icon: "wave" },
+const ADMIN_ITEMS: { href: string; label: string; short?: string; icon: IconName }[] = [
+  { href: "/usuarios", label: "Usuários", icon: "shield" },
+  { href: "/configuracoes", label: "Configurações", short: "Ajustes", icon: "wave" },
 ];
 
 export function Nav({ isAdmin }: { isAdmin: boolean }) {
@@ -26,7 +26,8 @@ export function Nav({ isAdmin }: { isAdmin: boolean }) {
         return (
           <Link key={item.href} href={item.href} className={`nav-i${on ? " on" : ""}`} aria-current={on ? "page" : undefined} title={item.label}>
             <Icon name={item.icon} size={20} />
-            <span className="lab">{item.label}</span>
+            <span className="lab lab-full">{item.label}</span>
+            <span className="lab lab-short" aria-hidden="true">{item.short ?? item.label}</span>
           </Link>
         );
       })}

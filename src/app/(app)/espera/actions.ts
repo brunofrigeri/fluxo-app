@@ -3,6 +3,7 @@
 import { revalidatePath } from "next/cache";
 import { getAdmin } from "@/lib/admin";
 import { db, friendly } from "@/lib/auth";
+import { getStudioModalities } from "@/lib/modalities";
 import { waitSchema } from "@/lib/waitlist";
 
 export type WaitState = { error?: string; saved?: number } | undefined;
@@ -24,6 +25,7 @@ export async function addToWaitList(_prev: WaitState, formData: FormData): Promi
     if (!me?.studioId) return { error: "Sessão expirada. Entre novamente." };
     const supabase = await db();
     const { modalityId, ...rest } = parsed.data;
+    if (!(await getStudioModalities()).some((m) => m.id === modalityId)) return { error: "Modalidade inválida." };
     const { error } = await supabase.from("wait_list").insert({ ...rest, modality_id: modalityId, studio_id: me.studioId });
     if (error) return { error: friendly(error) };
   } catch (e) {
@@ -39,6 +41,7 @@ export async function updateWaitEntry(id: string, _prev: WaitState, formData: Fo
   try {
     const supabase = await db();
     const { modalityId, ...rest } = parsed.data;
+    if (!(await getStudioModalities()).some((m) => m.id === modalityId)) return { error: "Modalidade inválida." };
     const { error } = await supabase.from("wait_list").update({ ...rest, modality_id: modalityId }).eq("id", id);
     if (error) return { error: friendly(error) };
   } catch (e) {
