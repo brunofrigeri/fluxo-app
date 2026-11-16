@@ -7,6 +7,8 @@
     "build": "next build",
     "start": "next start",
     "typecheck": "tsc --noEmit",
+    "test:e2e": "e2e run",
+    "e2e:local": "bash scripts/e2e-local.sh",
     "test": "tsx --tsconfig tsconfig.test.json --test packages/forms/test/*.test.ts supabase/tests/*.test.ts test/*.test.ts test/*.test.tsx"
   },
   "dependencies": {
@@ -19,10 +21,13 @@
     "zod": "^3.24.0"
   },
   "devDependencies": {
+    "@e2e-dev/web": "^0.16.0",
     "@electric-sql/pglite": "^0.5.10",
     "@types/node": "^22.0.0",
     "@types/react": "^19.0.0",
     "@types/react-dom": "^19.0.0",
+    "ai": "^7.0.173",
+    "e2e": "^0.23.1",
     "tsx": "^4.23.15",
     "typescript": "^5.7.0"
   },

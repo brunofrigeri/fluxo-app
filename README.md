@@ -21,7 +21,7 @@ Fluxo is multi-tenant: anyone can sign up and get their own isolated studio, inv
 
 Launch modalities are **Pilates** and **Acupuntura**; a user can teach one or both. Modalities are code-owned (no studio-defined ones): each has a seed row in `modalities` and form definitions in `packages/forms`.
 
-- A studio switches modalities on in **Configurações** (admin), and picks them at signup. Each user is marked with the modalities they teach (`/usuarios`).
+- A studio switches modalities on in **Configurações** (admin). A new studio starts with Pilates on. Each user is marked with the modalities they teach (`/usuarios`).
 - A client is enrolled in one or more modalities, with a **responsible instructor per modality** (`client_modality_instructors`). Only admins reassign. A modality that already has slots or records on a client cannot be removed from them.
 - Slots, bookings, evaluations, evolutions, class notes and wait list entries all carry a modality. Scheduling is identical for every modality (no client limit per slot).
 - Adding a client to the agenda starts with the modality (limited to the ones the user teaches). Agenda and Home have a modality filter, chips carry the modality colour, and the weekly attendance rate follows the filter.
@@ -165,11 +165,52 @@ Upgrading an existing single-admin database: 0006 turns existing accounts into a
 
 Recurring slots become bookings through `select generate_bookings(8)`. The SQL file has a commented `pg_cron` line to run it daily.
 
+## Tests and releases (CI)
+
+`.github/workflows/ci.yml` runs on every pull request and every push to `master`:
+
+1. **checks**: `npm run typecheck` and `npm test`.
+2. **e2e**: starts a throwaway local Supabase from `supabase/migrations` (never the production project), builds and starts the app, and runs the [e2e](https://e2e.com/docs) tests.
+3. **deploy** (push to `master` only): runs **only if checks and e2e passed**, and deploys to Vercel production with the Vercel CLI.
+
+`vercel.json` turns off Vercel's own auto-deploy for `master`, so a release can only go out through this workflow. Pull-request preview deployments from Vercel still work.
+
+**Running the e2e tests on your machine:** `npm run e2e:local` (needs Docker). It starts a throwaway local Supabase from `supabase/migrations`, builds the app against it, runs the tests and cleans up. Run one file with `npm run e2e:local -- tests/auth.e2e.ts`.
+
+> **Never point the e2e tests at the hosted Supabase project.** Every test signs up a new account, which creates real users and studios and sends real emails. The script above sets the database explicitly so `.env.local` cannot leak in. If you run `npx e2e run` by hand, make sure the app on `:3000` was started against the local Supabase.
+
+**What the tests cover** (`tests/*.e2e.ts`, each test signs up its own account and studio, so they never share data):
+
+| File | Covers |
+| --- | --- |
+| `auth` | Sign-up creates a studio and shows the person's name (not the email); wrong password refused; sign-out and back in; signed-out visitors cannot open any page |
+| `clients` | Create a client, search, required fields, duplicate document refused |
+| `agenda` | Book a client into a slot; mark attendance and keep it after reload; booking search |
+| `evolutions` | Typed spaces are kept (regression); an evolution is saved on the client; empty evolution refused |
+| `waitlist` | Add, filter by period, incomplete entry refused |
+| `modalities` | A modality is hidden everywhere until the studio switches it on, and again when switched off |
+| `users` | Owner is admin, renaming shows everywhere; invite validation |
+| `mobile` | Bottom navigation bar on phone, small phone and tablet; Clientes and Usuários icons differ; users list does not overflow |
+
+**Writing tests:** add `tests/<name>.e2e.ts` and use the helpers in `tests/helpers.ts` (`signUp`, `createClient`, `open`, `untilSaved`). Two things to know: use `open(page, path)` instead of `app.open`, because it waits until the page is interactive (a click before hydration does nothing); and wrap clicks on optimistic controls in `untilSaved`, because navigating right after one cancels the background save. Without `APP_URL`, `npm run test:e2e` starts `npm run dev` itself. Node 24.8+ is required, and the browser is installed once with `npx e2e-web install chromium`. Steps written as natural-language goals (`agent.act`, `agent.assert`) also need `AI_GATEWAY_API_KEY`; deterministic tests do not.
+
+**GitHub repository secrets** (Settings > Secrets and variables > Actions):
+
+| Secret | Purpose |
+| --- | --- |
+| `VERCEL_TOKEN` | Vercel account token for the deploy job |
+| `VERCEL_ORG_ID` | `orgId` from `.vercel/project.json` after running `npx vercel link` once |
+| `VERCEL_PROJECT_ID` | `projectId` from the same file |
+| `AI_GATEWAY_API_KEY` | Optional. Only for agent steps in e2e tests |
+
+To make the gate strict, in GitHub: Settings > Branches > protect `master` and require the `Typecheck and unit tests` and `End-to-end tests` checks.
+
 ## Deploy on Vercel
 
 1. Push this folder to a private Git repository and import it in Vercel.
-2. Add the three environment variables above. The service-role key is a server-only secret.
-3. Deploy. In Supabase, Authentication > URL Configuration, set the Site URL to your Vercel domain.
+2. Add the three environment variables above in Vercel (Production). The service-role key is a server-only secret. The deploy job pulls them with `vercel pull`.
+3. In Supabase, Authentication > URL Configuration, set the Site URL to your Vercel domain.
+4. Add the GitHub secrets from the table above. After that, merging to `master` releases through CI.
 
 ## Notes
 
