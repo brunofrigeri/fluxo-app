@@ -67,12 +67,12 @@ export type Exercise = z.infer<typeof exercise>;
 // Evolutions saved before the regions existed had free text per area. They are read as regions + note.
 const LEGACY_AREAS: Record<string, RegionKey> = { inferiors: "mmii", superiors: "mmss", global: "global" };
 
-function readExercise(ex: Record<string, unknown>): { regions: RegionKey[]; note: string } {
+function readExercise(ex: Record<string, unknown>, trim = true): { regions: RegionKey[]; note: string } {
   if ("regions" in ex || "note" in ex) {
     const picked: unknown[] = Array.isArray(ex.regions) ? ex.regions : [];
     return {
       regions: REGION_KEYS.filter((k) => picked.includes(k)),
-      note: typeof ex.note === "string" ? ex.note.trim() : "",
+      note: typeof ex.note === "string" ? (trim ? ex.note.trim() : ex.note) : "",
     };
   }
   const found = new Set<RegionKey>();
@@ -88,7 +88,8 @@ function readExercise(ex: Record<string, unknown>): { regions: RegionKey[]; note
 }
 
 /** Anything stored or sent (new or old shape) -> the current shape, without empty branches. */
-export function normalizeTree(raw: unknown): Apparatus {
+/** `trim: false` is for text being typed: trimming on every keystroke would swallow the spaces. */
+export function normalizeTree(raw: unknown, { trim = true }: { trim?: boolean } = {}): Apparatus {
   const out: Apparatus = {};
   if (!raw || typeof raw !== "object") return out;
   for (const a of APPARATUS_KEYS) {
@@ -97,8 +98,8 @@ export function normalizeTree(raw: unknown): Apparatus {
     for (const e of EXERCISE_KEYS) {
       const ex = (node as Record<string, unknown>)[e];
       if (!ex || typeof ex !== "object") continue;
-      const { regions, note } = readExercise(ex as Record<string, unknown>);
-      if (regions.length === 0 && !note) continue;
+      const { regions, note } = readExercise(ex as Record<string, unknown>, trim);
+      if (regions.length === 0 && !(trim ? note : note.trim())) continue;
       out[a] = out[a] ?? {};
       out[a]![e] = note ? { regions, note } : { regions };
     }

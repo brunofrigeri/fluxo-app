@@ -33,8 +33,9 @@ export default async function WaitListPage({ searchParams }: { searchParams: Pro
     getStudioModalities(),
   ]);
   if (error) throw new Error(`lista de espera: ${error.message}`);
-  const all = (data ?? []) as { id: string; name: string; phone: string; period: Period; created_at: string; modality_id: string }[];
   const modalityOf = new Map(modalities.map((m) => [m.id, m]));
+  // Entries for a modality the studio has switched off are hidden entirely (and kept, in case it is switched back on).
+  const all = ((data ?? []) as { id: string; name: string; phone: string; period: Period; created_at: string; modality_id: string }[]).filter((r) => modalityOf.has(r.modality_id));
 
   const counts: Record<Period, number> = { MORNING: 0, AFTERNOON: 0, NIGHT: 0 };
   for (const r of all) counts[r.period] += 1;

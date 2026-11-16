@@ -87,12 +87,23 @@ select.input { appearance: auto; }
 @media (max-width: 1024px) { .detail-grid { grid-template-columns: minmax(0, 1fr); } .stickybar { margin: 24px -24px -48px; padding: 16px 24px; } }
 @media (max-width: 720px) { .form-grid { grid-template-columns: minmax(0, 1fr); } .stickybar { margin: 24px -16px -104px; padding: 12px 16px; bottom: 72px; } }
 
+/* ---- tabs: scroll sideways instead of overflowing the page ---- */
+.scroll-tabs { overflow-x: auto; overflow-y: hidden; flex-wrap: nowrap; scrollbar-width: none; -webkit-overflow-scrolling: touch; }
+.scroll-tabs::-webkit-scrollbar { display: none; }
+.scroll-tabs .tabi { flex: none; white-space: nowrap; }
+
+/* ---- users list ---- */
+.user-row { padding: 12px 20px; }
+.user-meta { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; justify-content: flex-end; }
+
+.lab-short { display: none; }
+
 /* ---- tables on small screens ---- */
 .table-scroll { overflow-x: auto; }
 
 /* ---- tablet: collapsed sidebar ---- */
 @media (max-width: 1024px) {
-  .side { width: 80px; padding: 24px 12px; align-items: center; }
+  .side { width: 80px; padding: 24px 12px; align-items: center; overflow-y: auto; overflow-x: hidden; }
   .side .wordmark, .side .lab, .side .me-text { display: none; }
   .side .nav-i { width: 52px; justify-content: center; padding: 0; }
   .side .me { width: auto; padding: 4px; }
@@ -100,19 +111,39 @@ select.input { appearance: auto; }
   .home-main, .home-row { grid-template-columns: minmax(0, 1fr); }
 }
 
-/* ---- phone: bottom tab bar ---- */
-@media (max-width: 720px) {
+/* ---- phone and tablet: bottom tab bar ---- */
+@media (max-width: 1024px) {
   .shell { flex-direction: column; }
   .side {
     position: fixed; left: 0; right: 0; bottom: 0; top: auto; height: auto; width: auto; z-index: 30;
     flex-direction: row; align-items: center; gap: 4px; border-right: 0; border-top: 1px solid var(--line);
-    padding: 8px 12px calc(8px + env(safe-area-inset-bottom, 0px));
+    padding: 8px 12px calc(8px + env(safe-area-inset-bottom, 0px)); overflow: visible;
   }
   .side .brand { display: none; }
   .side .nav { flex-direction: row; flex: 1; justify-content: space-around; gap: 4px; }
-  .side .nav-i { flex-direction: column; gap: 2px; height: 56px; width: auto; flex: 1; min-width: 0; padding: 0 2px; font-size: 11px; line-height: 1.15; text-align: center; border-radius: 14px; }
-  .side .nav-i .lab { display: inline; }
+  .side .nav-i { flex-direction: column; justify-content: center; gap: 2px; height: 56px; width: auto; flex: 1; min-width: 0; padding: 0 2px; font-size: 11px; line-height: 1.15; text-align: center; border-radius: 14px; }
+  .side .nav-i .lab-full { display: none; }
+  .side .nav-i .lab-short { display: block; white-space: nowrap; }
+  .side .me { width: auto; padding: 4px; }
   .me-wrap { margin-top: 0; }
   .menu-pop { left: auto; right: 0; bottom: calc(100% + 16px); }
+  .main { padding: 24px 24px 104px; }
+  .stickybar { bottom: 72px; margin-bottom: -104px; }
+}
+
+/* ---- phone ---- */
+@media (max-width: 720px) {
   .main { padding: 20px 16px 104px; }
+  .user-row { flex-wrap: wrap; padding: 12px 16px; row-gap: 8px; }
+  .user-row .grow { flex: 1 1 0; }
+  .user-meta { order: 5; flex: 1 0 100%; justify-content: flex-start; padding-left: 40px; }
+  .tabs { margin-left: -16px; margin-right: -16px; padding: 0 16px; }
+}
+
+/* very narrow phones (320px): keep all items and the avatar inside the bar */
+@media (max-width: 360px) {
+  .side { padding-left: 6px; padding-right: 6px; gap: 2px; }
+  .side .nav { gap: 0; }
+  .side .nav-i { font-size: 10px; padding: 0; }
+  .side .me .avatar { width: 30px; height: 30px; font-size: 12px; }
 }

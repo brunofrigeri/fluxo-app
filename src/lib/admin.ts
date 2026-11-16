@@ -6,9 +6,10 @@ const TITLES = /^(dr|dra|sr|sra)\.?$/i;
 export type Role = "admin" | "instructor";
 export type Admin = { id: string; email: string; name: string; firstName: string; initials: string; role: Role; workingHours: string | null; studioId: string | null };
 
-export function buildAdmin(meta: Record<string, unknown> | undefined, email: string, id: string, role: Role, workingHours: string | null, studioId: string | null): Admin {
+export function buildAdmin(meta: Record<string, unknown> | undefined, email: string, id: string, role: Role, workingHours: string | null, studioId: string | null, profileName?: string | null): Admin {
+  // The name an admin edits on Usuários lives in `profiles.name`; auth metadata is only what was typed at signup/invite.
   const fromMeta = (meta?.full_name ?? meta?.name) as string | undefined;
-  const name = fromMeta?.trim() || email.split("@")[0];
+  const name = profileName?.trim() || fromMeta?.trim() || email.split("@")[0];
   const parts = name.split(/\s+/).filter((p) => p && !TITLES.test(p));
   const firstName = parts[0] ?? name;
   const initials = parts.length === 0 ? "?" : (parts[0][0] + (parts.length > 1 ? parts[parts.length - 1][0] : "")).toUpperCase();
@@ -38,18 +39,16 @@ async function provisionStudio(supabase: Awaited<ReturnType<typeof createClient>
   const { data: profile, error: profileError } = await supabase
     .from("profiles")
     .insert({ id: user.id, email: user.email ?? "", name, role: "admin", studio_id: studioId })
-    .select("role, working_hours, studio_id")
+    .select("role, working_hours, studio_id, name")
     .single();
   if (profileError || !profile) {
     throw new Error(`Não foi possível criar o perfil de administrador (${profileError?.message ?? "erro desconhecido"}).`);
   }
 
-  // Switch on the modalities chosen at signup (default Pilates) and let the founder teach them.
-  const chosen = ((user.user_metadata?.modalities as unknown[] | undefined) ?? []).filter((k): k is string => typeof k === "string");
+  // A new studio starts with Pilates on; the admin changes what it offers in Configurações.
   const { data: all, error: modalitiesError } = await supabase.from("modalities").select("id, key");
   if (modalitiesError) throw new Error(`Não foi possível carregar as modalidades (${modalitiesError.message}).`);
-  const picked = (all ?? []).filter((m) => chosen.includes(m.key as string));
-  const ids = (picked.length > 0 ? picked : (all ?? []).filter((m) => m.key === "pilates")).map((m) => m.id as string);
+  const ids = (all ?? []).filter((m) => m.key === "pilates").map((m) => m.id as string);
   const { error: enableError } = await supabase.from("studio_modalities").insert(ids.map((modality_id) => ({ studio_id: studioId, modality_id })));
   if (enableError) throw new Error(`Não foi possível ativar as modalidades (${enableError.message}).`);
   // The founder is an admin, and admins teach every modality of the studio by default (migration 0012).
@@ -63,7 +62,7 @@ export const getAdmin = cache(async (): Promise<Admin | null> => {
     data: { user },
   } = await supabase.auth.getUser();
   if (!user) return null;
-  let { data: profile, error: profileError } = await supabase.from("profiles").select("role, working_hours, studio_id").eq("id", user.id).maybeSingle();
+  let { data: profile, error: profileError } = await supabase.from("profiles").select("role, working_hours, studio_id, name").eq("id", user.id).maybeSingle();
   if (profileError) {
     // Swallowing this previously made a lookup failure look identical to "no profile yet" and
     // wrongly tried to provision a second studio for someone who already has one — surface it instead.
@@ -71,5 +70,5 @@ export const getAdmin = cache(async (): Promise<Admin | null> => {
   }
   if (!profile) profile = await provisionStudio(supabase, user);
   const role = (profile?.role as Role | undefined) ?? "instructor";
-  return buildAdmin(user.user_metadata, user.email ?? "", user.id, role, (profile?.working_hours as string | null) ?? null, (profile?.studio_id as string | null) ?? null);
+  return buildAdmin(user.user_metadata, user.email ?? "", user.id, role, (profile?.working_hours as string | null) ?? null, (profile?.studio_id as string | null) ?? null, profile?.name as string | null | undefined);
 });

@@ -33,7 +33,7 @@ export function FormFields({ def, value, onChange, idPrefix = "f", plain = false
       {def.sections.map((section) =>
         bare(section) ? (
           <Fragment key={section.id}>
-            <ApparatusField value={normalizeTree(value[section.fields[0].key])} onChange={(tree) => set(section.fields[0].key, tree)} />
+            <ApparatusField value={normalizeTree(value[section.fields[0].key], { trim: false })} onChange={(tree) => set(section.fields[0].key, tree)} />
           </Fragment>
         ) : (
           <section key={section.id} className={plain ? "fsec plain" : "card fsec"} aria-labelledby={`${idPrefix}-${section.id}`}>

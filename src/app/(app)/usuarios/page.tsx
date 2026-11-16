@@ -41,10 +41,10 @@ export default async function UsuariosPage() {
 
       <section className="card" style={{ padding: 0, overflow: "hidden" }}>
         {users.length === 0 ? (
-          <div className="empty"><Icon name="users" size={20} /><b style={{ color: "var(--ink)" }}>Nenhum usuário ainda</b></div>
+          <div className="empty"><Icon name="shield" size={20} /><b style={{ color: "var(--ink)" }}>Nenhum usuário ainda</b></div>
         ) : (
           users.map((u) => (
-            <div className="li" key={u.id as string}>
+            <div className="li user-row" key={u.id as string}>
               <span className="avatar sm">{initialsOf(u.name as string)}</span>
               <div className="grow" style={{ minWidth: 0 }}>
                 <div style={{ fontWeight: 600 }}>
@@ -53,6 +53,7 @@ export default async function UsuariosPage() {
                 </div>
                 <div className="t-small muted" style={{ overflowWrap: "anywhere" }}>{u.email as string}</div>
               </div>
+              <div className="user-meta">
               <span className="row" style={{ gap: 6, flexWrap: "wrap" }}>
                 {modalities.filter((m) => modalityIdsOf(u.id as string).includes(m.id)).map((m) => (
                   <ModalityTag key={m.id} modality={m.key} />
@@ -60,6 +61,7 @@ export default async function UsuariosPage() {
               </span>
               <span className={`pill${u.role === "admin" ? " acc" : ""}`}>{ROLE_LABEL[u.role as string] ?? u.role}</span>
               {u.working_hours && <span className="t-small muted">{u.working_hours as string}</span>}
+              </div>
               <UserDialog
                 mode="edit"
                 userId={u.id as string}

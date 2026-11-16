@@ -7,7 +7,7 @@ import { getForm, isEmptyData, isModalityKey, parseData, type ModalityKey } from
 import { getAdmin } from "@/lib/admin";
 import { db, friendly } from "@/lib/auth";
 import { todayISO } from "@/lib/dates";
-import { getModalities, getStudioModalities, getTeachableModalities, type Modality } from "@/lib/modalities";
+import { getStudioModalities, getTeachableModalities, type Modality } from "@/lib/modalities";
 
 /** `saved` tells a dialog to close itself; those actions do not redirect, so the page stays where it is. */
 export type FormState = { error?: string; saved?: boolean } | undefined;
@@ -211,7 +211,7 @@ export async function removeRecurringSlot(clientId: string, slotId: string): Pro
 
 async function resolveModality(key: string): Promise<Modality | null> {
   if (!isModalityKey(key)) return null;
-  return (await getModalities()).find((m) => m.key === key) ?? null;
+  return (await getStudioModalities()).find((m) => m.key === key) ?? null;
 }
 
 function readData(formData: FormData, modality: ModalityKey, kind: "evaluation" | "evolution") {

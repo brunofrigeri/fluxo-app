@@ -1,0 +1,19 @@
+# Used by `supabase start` in CI (.github/workflows/ci.yml) to run the e2e tests against a throwaway
+# local database built from supabase/migrations. Production is the hosted project, not this file.
+project_id = "fluxo"
+
+[db.seed]
+# The e2e tests create their own data; supabase/seed.sql is for manual development only.
+enabled = false
+
+[auth]
+enable_signup = true
+
+[auth.email]
+enable_confirmations = false
+
+[auth.rate_limit]
+# Every e2e test signs up its own account, far above the production defaults.
+email_sent = 10000
+sign_in_sign_ups = 10000
+token_verifications = 10000
