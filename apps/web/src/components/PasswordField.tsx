@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { Icon } from "./Icon";
+import { Icon } from "@fluxo/ui-web";
 
 export function PasswordField({ invalid }: { invalid?: boolean }) {
   const [show, setShow] = useState(false);

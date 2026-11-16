@@ -6,7 +6,7 @@ import type { DialogClient } from "@/lib/queries/agenda";
 import type { Modality } from "@/lib/modalities";
 import { initialsOf } from "@fluxo/domain";
 import { FIRST_HOUR, LAST_HOUR } from "@fluxo/domain";
-import { Icon } from "./Icon";
+import { Icon } from "@fluxo/ui-web";
 
 type Props = {
   onClose: () => void;

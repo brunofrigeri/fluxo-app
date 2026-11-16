@@ -4,7 +4,7 @@ import { useEffect, useState, useTransition } from "react";
 import { getDialogClientsAction } from "@/app/(app)/actions";
 import { AddBookingDialog } from "./AddBookingDialog";
 import { AgendaEvent } from "./AgendaEvent";
-import { Icon } from "./Icon";
+import { Icon } from "@fluxo/ui-web";
 import type { AgendaBooking } from "@/lib/queries/agenda";
 import { weekdayShortUpper, dayNumber } from "@fluxo/domain";
 import type { DialogClient } from "@/lib/queries/agenda";

@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
 import Link from "next/link";
-import { Icon, type IconName } from "@/components/Icon";
+import { Icon, type IconName } from "@fluxo/ui-web";
 import { ModalityTag } from "@/components/ModalityTag";
 import { Seg } from "@/components/Seg";
 import { StatusMenu } from "@/components/StatusMenu";

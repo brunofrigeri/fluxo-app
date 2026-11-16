@@ -2,7 +2,7 @@
 
 import { useEffect, useRef, useState } from "react";
 import { signOut } from "@/app/login/actions";
-import { Icon } from "./Icon";
+import { Icon } from "@fluxo/ui-web";
 
 export function UserMenu({ name, email, initials, role }: { name: string; email: string; initials: string; role: "admin" | "instructor" }) {
   const [open, setOpen] = useState(false);

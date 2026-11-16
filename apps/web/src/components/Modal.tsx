@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect } from "react";
-import { Icon } from "./Icon";
+import { Icon } from "@fluxo/ui-web";
 
 /**
  * Dialog over a scrim. Escape, the X and a click outside all call `onClose`.

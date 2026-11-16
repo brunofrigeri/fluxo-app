@@ -2,7 +2,7 @@
 
 import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
-import { Icon } from "@/components/Icon";
+import { Icon, Logo } from "@fluxo/ui-web";
 import { SubmitButton } from "@/components/SubmitButton";
 import { createClient } from "@/lib/supabase/client";
 
@@ -58,12 +58,7 @@ export default function ConvitePage() {
   return (
     <div className="fx" data-theme="light" style={{ display: "flex", alignItems: "center", justifyContent: "center", padding: 24, minHeight: "100vh" }}>
       <main style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 32, width: 432, maxWidth: "100%" }}>
-        <div className="brand" style={{ gap: 12 }}>
-          <div className="lm" style={{ width: 44, height: 44, borderRadius: 14 }}>
-            <Icon name="wave" size={24} />
-          </div>
-          <span className="wordmark" style={{ fontSize: 32 }}>Fluxo</span>
-        </div>
+        <Logo size="lg" />
 
         {status === "checking" && <p className="t-body muted">Verificando convite…</p>}
 

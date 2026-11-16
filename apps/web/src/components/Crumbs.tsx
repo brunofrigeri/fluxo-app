@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { Icon } from "./Icon";
+import { Icon } from "@fluxo/ui-web";
 
 export function Crumbs({ items }: { items: { label: string; href?: string }[] }) {
   return (

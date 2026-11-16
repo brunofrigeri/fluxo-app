@@ -6,7 +6,7 @@ export { STATUS_VALUES, isPresent, isStatus, type AttendanceStatus } from "@flux
 
 type StatusMeta = { label: string; cls: string; dot: string };
 
-// cls / dot are class names from the design system (src/styles/fluxo.css).
+// cls / dot are class names from the design system (packages/ui-web/fluxo.css).
 const CLASSES: Record<AttendanceStatus, { cls: string; dot: string }> = {
   PRESENCE_CONFIRMED: { cls: "st-ok", dot: "sd-ok" },
   JUSTIFIED_MISS: { cls: "st-jm", dot: "sd-jm" },

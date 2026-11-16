@@ -5,7 +5,7 @@ import {
   APPARATUS_KEYS, APPARATUS_LABELS, EXERCISE_KEYS, EXERCISE_LABELS, REGION_KEYS, REGION_LABELS, countFields,
   type Apparatus, type ApparatusKey, type Exercise, type ExerciseKey, type RegionKey,
 } from "@fluxo/forms";
-import { Icon } from "../Icon";
+import { Icon } from "@fluxo/ui-web";
 
 const EMPTY: Exercise = { regions: [] };
 

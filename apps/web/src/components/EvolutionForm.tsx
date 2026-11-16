@@ -5,7 +5,7 @@ import { useActionState, useState } from "react";
 import { filledCount, getForm, type ModalityKey, type RecordData } from "@fluxo/forms";
 import type { FormState } from "@/app/(app)/clientes/actions";
 import { FormFields } from "./forms/FormFields";
-import { Icon } from "./Icon";
+import { Icon } from "@fluxo/ui-web";
 import { SubmitButton } from "./SubmitButton";
 
 export type SessionOption = { id: string; date: string; label: string };

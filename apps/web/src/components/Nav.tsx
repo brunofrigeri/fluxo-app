@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { Icon, type IconName } from "./Icon";
+import { Icon, type IconName } from "@fluxo/ui-web";
 
 const ITEMS: { href: string; label: string; short?: string; icon: IconName }[] = [
   { href: "/", label: "Home", icon: "home" },

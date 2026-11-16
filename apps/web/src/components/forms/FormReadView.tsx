@@ -2,7 +2,7 @@ import {
   APPARATUS_KEYS, APPARATUS_LABELS, EXERCISE_LABELS, REGION_LABELS, TONGUE_ZONE_LABELS, countFields, displayValue, leaves, readSections,
   type FormDefinition, type RecordData, type Row, type TongueZoneKey,
 } from "@fluxo/forms";
-import { Icon } from "../Icon";
+import { Icon } from "@fluxo/ui-web";
 
 /** Read-only view of a saved record: only the filled fields, section by section. */
 export function FormReadView({ def, data }: { def: FormDefinition; data: RecordData }) {

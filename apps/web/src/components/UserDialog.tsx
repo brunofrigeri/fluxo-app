@@ -2,7 +2,7 @@
 
 import { useCallback, useState } from "react";
 import { inviteUser, updateUser } from "@/app/(app)/usuarios/actions";
-import { Icon } from "./Icon";
+import { Icon } from "@fluxo/ui-web";
 import { Modal } from "./Modal";
 import { UserForm, type UserValues } from "./UserForm";
 

@@ -4,7 +4,7 @@ import { notFound } from "next/navigation";
 import { getForm, isModalityKey } from "@fluxo/forms";
 import { Crumbs } from "@/components/Crumbs";
 import { FormReadView } from "@/components/forms/FormReadView";
-import { Icon } from "@/components/Icon";
+import { Icon } from "@fluxo/ui-web";
 import { ModalityTag } from "@/components/ModalityTag";
 import { initialsOf } from "@fluxo/domain";
 import { formatBR, formatWeekdayDate, hhmm } from "@fluxo/domain";

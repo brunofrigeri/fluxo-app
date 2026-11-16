@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { ClientForm, EMPTY_CLIENT } from "@/components/ClientForm";
-import { Icon } from "@/components/Icon";
+import { Icon } from "@fluxo/ui-web";
 import { getAdmin } from "@/lib/admin";
 import { getInstructorsByModality, getTeachableModalities } from "@/lib/modalities";
 import { createClientAction } from "../actions";

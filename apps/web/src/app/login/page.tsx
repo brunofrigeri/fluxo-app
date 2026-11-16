@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
 import Link from "next/link";
-import { Icon } from "@/components/Icon";
+import { Icon, Logo } from "@fluxo/ui-web";
 import { PasswordField } from "@/components/PasswordField";
 import { SubmitButton } from "@/components/SubmitButton";
 import { signIn } from "./actions";
@@ -20,12 +20,7 @@ export default async function LoginPage({ searchParams }: { searchParams: Promis
       </svg>
 
       <main style={{ position: "relative", display: "flex", flexDirection: "column", alignItems: "center", gap: 32, width: 432, maxWidth: "100%" }}>
-        <div className="brand" style={{ gap: 12 }}>
-          <div className="lm" style={{ width: 44, height: 44, borderRadius: 14 }}>
-            <Icon name="wave" size={24} />
-          </div>
-          <span className="wordmark" style={{ fontSize: 32 }}>Fluxo</span>
-        </div>
+        <Logo size="lg" />
 
         <form action={signIn} className="card" style={{ width: "100%", padding: 36, display: "flex", flexDirection: "column", gap: 22 }}>
           <div style={{ display: "flex", flexDirection: "column", gap: 4 }}>

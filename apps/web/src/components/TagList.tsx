@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { Icon } from "./Icon";
+import { Icon } from "@fluxo/ui-web";
 
 /** Editable list of short texts (doenças, cirurgias). Values travel as hidden inputs of the client form. */
 export function TagList({ title, name, formId, initial, placeholder }: { title: string; name: string; formId: string; initial: string[]; placeholder: string }) {

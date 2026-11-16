@@ -2,7 +2,7 @@ import type { Metadata } from "next";
 import { headers } from "next/headers";
 import Link from "next/link";
 import { AgendaClient } from "@/components/AgendaClient";
-import { Icon } from "@/components/Icon";
+import { Icon } from "@fluxo/ui-web";
 import { Seg } from "@/components/Seg";
 import { getAdmin } from "@/lib/admin";
 import { getInstructorsByModality, getStudioModalities, getTeachableModalities, pickModality } from "@/lib/modalities";

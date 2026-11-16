@@ -5,7 +5,7 @@ import { editableData, getForm, type ModalityKey, type RecordData } from "@fluxo
 import { deleteEvaluation, saveEvaluation } from "@/app/(app)/clientes/actions";
 import { formatBR } from "@fluxo/domain";
 import { EvaluationForm } from "./EvaluationForm";
-import { Icon } from "./Icon";
+import { Icon } from "@fluxo/ui-web";
 import { Modal } from "./Modal";
 import { ModalityTag } from "./ModalityTag";
 import { Seg } from "./Seg";

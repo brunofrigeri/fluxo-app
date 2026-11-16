@@ -2,7 +2,7 @@
 
 import { Fragment } from "react";
 import { TONGUE_ZONE_KEYS, TONGUE_ZONE_LABELS, normalizeTree, type Field, type FormDefinition, type RecordData, type Row, type Section } from "@fluxo/forms";
-import { Icon } from "../Icon";
+import { Icon } from "@fluxo/ui-web";
 import { ApparatusField } from "./ApparatusField";
 
 type Props = {

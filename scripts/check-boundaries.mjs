@@ -14,6 +14,8 @@ const ALLOWED = {
   copy: { workspace: [], npm: [] },
   forms: { workspace: [], npm: ["zod"] },
   domain: { workspace: ["copy"], npm: ["zod"] },
+  // The only shared package that may use React (web only; mobile has its own native kit).
+  "ui-web": { workspace: ["copy", "tokens"], npm: ["react"] },
 };
 
 const walk = (dir) =>

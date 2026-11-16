@@ -4,7 +4,7 @@ import { notFound } from "next/navigation";
 import { ClientForm } from "@/components/ClientForm";
 import { ConfirmButton } from "@/components/ConfirmButton";
 import { EvaluationsPanel, type EvaluationRow } from "@/components/EvaluationsPanel";
-import { Icon } from "@/components/Icon";
+import { Icon } from "@fluxo/ui-web";
 import { ModalityTag } from "@/components/ModalityTag";
 import { Seg } from "@/components/Seg";
 import { TagList } from "@/components/TagList";

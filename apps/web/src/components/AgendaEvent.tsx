@@ -8,7 +8,7 @@ import type { AgendaBooking } from "@/lib/queries/agenda";
 import { formatDayMonth, formatWeekdayDate } from "@fluxo/domain";
 import { isPresent, statusMeta } from "@/lib/status";
 import { initialsOf } from "@fluxo/domain";
-import { Icon } from "./Icon";
+import { Icon } from "@fluxo/ui-web";
 import { ModalityTag } from "./ModalityTag";
 import { StatusSelector } from "./StatusSelector";
 

@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
 import Link from "next/link";
-import { Icon } from "@/components/Icon";
+import { Icon } from "@fluxo/ui-web";
 import { ModalityTag } from "@/components/ModalityTag";
 import { Seg } from "@/components/Seg";
 import { getStudioModalities } from "@/lib/modalities";

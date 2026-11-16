@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
 import { ConfirmButton } from "@/components/ConfirmButton";
-import { Icon } from "@/components/Icon";
+import { Icon } from "@fluxo/ui-web";
 import { Seg } from "@/components/Seg";
 import { ModalityTag } from "@/components/ModalityTag";
 import { WaitEditDialog } from "@/components/WaitEditDialog";

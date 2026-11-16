@@ -8,7 +8,7 @@ export const MODALITY_LABELS: Record<ModalityKey, string> = {
   acupuncture: "Acupuntura",
 };
 
-/** A tone from the design system (see .mod-* in src/styles/fluxo.css), used for chips and tags. */
+/** A tone from the design system (see .mod-* in packages/ui-web/fluxo.css), used for chips and tags. */
 export const MODALITY_TONES: Record<ModalityKey, "pilates" | "acupuncture"> = {
   pilates: "pilates",
   acupuncture: "acupuncture",
