@@ -119,9 +119,7 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: 24
-      - name: Pull Vercel project settings and production env vars
-        run: npx vercel@latest pull --yes --environment=production --token="$VERCEL_TOKEN"
-      - name: Build
-        run: npx vercel@latest build --prod --token="$VERCEL_TOKEN"
-      - name: Deploy
-        run: npx vercel@latest deploy --prebuilt --prod --token="$VERCEL_TOKEN"
+      # Vercel builds the app itself (not `vercel pull` + `vercel build` here): variables marked Sensitive in Vercel
+      # cannot be pulled, they come down as the text "[SENSITIVE]" and get baked into the build, which broke the middleware.
+      - name: Deploy (Vercel builds it with the project's own environment variables)
+        run: npx vercel@latest deploy --prod --yes --token="$VERCEL_TOKEN"

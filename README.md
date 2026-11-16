@@ -208,7 +208,7 @@ To make the gate strict, in GitHub: Settings > Branches > protect `master` and r
 ## Deploy on Vercel
 
 1. Push this folder to a private Git repository and import it in Vercel.
-2. Add the three environment variables above in Vercel (Production). The service-role key is a server-only secret. The deploy job pulls them with `vercel pull`.
+2. Add the three environment variables above in Vercel (Production). The service-role key is a server-only secret. The deploy job uploads the code and Vercel builds it with these variables (so variables marked Sensitive work; do not switch the job to `vercel pull` + `vercel build`, which cannot read them).
 3. In Supabase, Authentication > URL Configuration, set the Site URL to your Vercel domain.
 4. Add the GitHub secrets from the table above. After that, merging to `master` releases through CI.
 
