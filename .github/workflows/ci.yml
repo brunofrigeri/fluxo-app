@@ -50,7 +50,9 @@ jobs:
       # A throwaway Supabase (Postgres + Auth + API) built from supabase/migrations. Never the production project.
       - uses: supabase/setup-cli@v1
         with:
-          version: latest
+          # Pinned (the version the tests were developed against). "latest" makes the action call the GitHub API,
+          # which fails with "rate limit exceeded" on shared runners.
+          version: 3.1.0
       - name: Start local Supabase
         run: supabase start -x studio,imgproxy,edge-runtime,logflare,vector,supavisor
       - name: Export local Supabase connection details
