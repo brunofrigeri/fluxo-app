@@ -5,3 +5,4 @@ export * from "./phone";
 export * from "./agenda-config";
 export * from "./attendance";
 export * from "./waitlist";
+export * from "./payments";

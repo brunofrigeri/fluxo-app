@@ -23,6 +23,10 @@ begin
   elsif tg_op = 'INSERT' then
     new.billing_since := coalesce(new.billing_since, (now() at time zone 'America/Sao_Paulo')::date);
   elsif old.billing_day is distinct from new.billing_day then
+    -- Anyone registering a client picks the day, but only admins move it afterwards (it decides when money is due).
+    if auth.uid() is not null and app_role() is distinct from 'admin' then
+      raise exception 'Só administradores alteram o dia de pagamento.';
+    end if;
     -- A new day starts a new cycle from today; what was recorded before stays in the history.
     new.billing_since := (now() at time zone 'America/Sao_Paulo')::date;
   end if;

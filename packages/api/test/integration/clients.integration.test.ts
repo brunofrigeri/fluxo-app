@@ -5,7 +5,7 @@ import { enabled, isoDay, newStudio, newUser, type Person } from "./harness";
 
 const base = (over: Partial<ClientInput> = {}): ClientInput => ({
   document: `doc-${Math.random().toString(36).slice(2)}`, name: "Cliente Novo", email: null, phone: null, emergency_contact_name: null, emergency_contact_phone: null,
-  date_of_birth: null, sex: null, marital_status: null, city: null, profession: null, workplace: null, children: null, parents: null, ...over,
+  date_of_birth: null, sex: null, marital_status: null, city: null, profession: null, workplace: null, children: null, parents: null, billing_day: 10, ...over,
 });
 const lists = { diseases: [], surgeries: [], current_treatments: [], previous_treatments: [], medications: [] };
 

@@ -56,3 +56,28 @@ test("wait list schema reports pt-BR messages", () => {
     assert.ok(m.includes("Informe o nome.") && m.includes("Informe um telefone válido.") && m.includes("Escolha o período."));
   }
 });
+
+import { daysOverdue, dueDateIn, isOverdue, isValidBillingDay, nextDueDate } from "../src";
+
+test("payment due dates follow the billing day, and the last day of shorter months", () => {
+  assert.equal(dueDateIn("2026-03-15", 10), "2026-03-10");
+  assert.equal(dueDateIn("2026-02-01", 31), "2026-02-28");
+  assert.equal(dueDateIn("2028-02-01", 31), "2028-02-29");
+  assert.equal(dueDateIn("2026-04-01", 31), "2026-04-30");
+  assert.equal(nextDueDate(10, "2026-03-10"), "2026-03-10"); // due today is still ahead
+  assert.equal(nextDueDate(10, "2026-03-11"), "2026-04-10");
+  assert.equal(nextDueDate(31, "2026-12-31"), "2026-12-31");
+  assert.equal(nextDueDate(5, "2026-12-20"), "2027-01-05");
+  assert.equal(nextDueDate(31, "2027-01-31"), "2027-01-31");
+  assert.equal(nextDueDate(30, "2027-01-31"), "2027-02-28");
+});
+
+test("overdue is past due and not paid; an explicit 'unpaid' is still owed", () => {
+  assert.equal(isOverdue("2026-03-10", "pending", "2026-03-11"), true);
+  assert.equal(isOverdue("2026-03-10", "unpaid", "2026-03-11"), true);
+  assert.equal(isOverdue("2026-03-10", "paid", "2026-03-11"), false);
+  assert.equal(isOverdue("2026-03-10", "pending", "2026-03-10"), false); // due today is not late yet
+  assert.equal(daysOverdue("2026-03-10", "2026-03-13"), 3);
+  assert.equal(daysOverdue("2026-03-10", "2026-03-10"), 0);
+  assert.equal(isValidBillingDay(31) && !isValidBillingDay(32) && !isValidBillingDay(0) && !isValidBillingDay(1.5), true);
+});

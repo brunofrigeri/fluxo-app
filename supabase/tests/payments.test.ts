@@ -50,6 +50,17 @@ describe("billing day", () => {
   });
 });
 
+describe("who can move the billing day", () => {
+  test("an instructor can save the client with the same day, but not change it; an admin can", async () => {
+    assert.equal(await as(db, INSTR, () => fails(() => db.exec(`update clients set billing_day = 10 where id = '${C_MONTHLY}'`))), null);
+    const err = await as(db, INSTR, () => fails(() => db.exec(`update clients set billing_day = 12 where id = '${C_MONTHLY}'`)));
+    assert.match(err ?? "", /administradores/);
+    assert.equal(await as(db, ADMIN1, () => fails(() => db.exec(`update clients set billing_day = 12 where id = '${C_MONTHLY}'`))), null);
+    // Put it back without restarting the cycles the other tests rely on.
+    await db.exec(`update clients set billing_day = 10 where id = '${C_MONTHLY}'; update clients set billing_since = '2026-01-01' where id = '${C_MONTHLY}'`);
+  });
+});
+
 describe("payment_cycles", () => {
   test("lists each due date of the month, pending until recorded, only for active clients with a day", async () => {
     const r = await as(db, ADMIN1, () => cycles("2026-03-01", "2026-03-31"));
