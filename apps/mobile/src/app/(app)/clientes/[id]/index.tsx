@@ -7,6 +7,7 @@ import { View } from "react-native";
 import { DataTab } from "@/features/clients/DataTab";
 import { EvaluationsTab } from "@/features/clients/EvaluationsTab";
 import { EvolutionsTab } from "@/features/clients/EvolutionsTab";
+import { ClientPaymentsTab } from "@/features/payments/ClientPaymentsTab";
 import { useMe } from "@/lib/me";
 import { supabase } from "@/lib/supabase";
 import { Avatar } from "@/ui/Avatar";
@@ -20,12 +21,12 @@ import { Seg } from "@/ui/Seg";
 import { Text } from "@/ui/Text";
 import type { ModalityKey } from "@fluxo/forms";
 
-type Tab = "dados" | "evolucoes" | "avaliacoes";
+type Tab = "dados" | "evolucoes" | "avaliacoes" | "pagamentos";
 
 export default function ClientPage() {
   const { id, aba, nova } = useLocalSearchParams<{ id: string; aba?: string; nova?: string }>();
-  const { studioModalities } = useMe();
-  const [tab, setTab] = useState<Tab>(aba === "evolucoes" || aba === "avaliacoes" ? aba : "dados");
+  const { studioModalities, isAdmin } = useMe();
+  const [tab, setTab] = useState<Tab>(aba === "evolucoes" || aba === "avaliacoes" || (aba === "pagamentos" && isAdmin) ? aba : "dados");
   const q = useQuery({ queryKey: ["client", id], queryFn: () => getClientDetail(supabase, id) });
 
   if (q.isPending) return <Screen back title="Cliente"><Text color="ink2">Carregando…</Text></Screen>;
@@ -44,7 +45,7 @@ export default function ClientPage() {
       title={client.name}
       refreshing={q.isRefetching}
       onRefresh={() => q.refetch()}
-      header={<View style={{ paddingBottom: 4 }}><Seg label="Seção" value={tab} onChange={setTab} items={[{ value: "dados", label: "Dados" }, { value: "evolucoes", label: "Evoluções" }, { value: "avaliacoes", label: "Avaliações" }]} /></View>}
+      header={<View style={{ paddingBottom: 4 }}><Seg label="Seção" value={tab} onChange={setTab} items={[{ value: "dados", label: "Dados" }, { value: "evolucoes", label: "Evoluções" }, { value: "avaliacoes", label: "Avaliações" }, ...(isAdmin ? [{ value: "pagamentos" as const, label: "Pagamentos" }] : [])]} /></View>}
     >
       <Card style={{ flexDirection: "row", gap: 14, alignItems: "flex-start" }}>
         <Avatar name={client.name} size={52} />
@@ -66,6 +67,7 @@ export default function ClientPage() {
 
       {tab === "dados" && <DataTab detail={q.data} enrolled={enrolled} />}
       {tab === "evolucoes" && <EvolutionsTab clientId={client.id} enrolled={enrolled} />}
+      {tab === "pagamentos" && isAdmin && <ClientPaymentsTab clientId={client.id} />}
       {tab === "avaliacoes" && <EvaluationsTab clientId={client.id} enrolled={enrolled} openNew={nova as ModalityKey | undefined} />}
     </Screen>
   );

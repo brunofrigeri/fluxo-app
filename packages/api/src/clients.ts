@@ -2,6 +2,7 @@ import type { SupabaseClient } from "@supabase/supabase-js";
 import { z } from "zod";
 import { formatShort, hhmm, todayISO } from "@fluxo/domain";
 import type { ModalityKey } from "@fluxo/forms";
+import { paymentCopy } from "@fluxo/copy";
 import { attempt, friendly, NOT_ALLOWED, touched, type Result } from "./errors";
 import { getStudioModalities, getTeachableModalities, type Modality } from "./modalities";
 import type { Me } from "./profile";
@@ -26,6 +27,8 @@ export const clientSchema = z.object({
   workplace: nullable(z.string().max(120)),
   children: nullable(z.string().max(300)),
   parents: nullable(z.string().max(300)),
+  // The day of the month the client pays the studio. Asked at onboarding; only admins move it later (database rule).
+  billing_day: nullable(z.number({ message: paymentCopy.billingDayRequired }).int(paymentCopy.billingDayRequired).min(1, paymentCopy.billingDayRequired).max(31, paymentCopy.billingDayRequired)),
 });
 
 /** The personal and shared fields of a client. Empty strings must already be `null`. */
@@ -154,6 +157,7 @@ export type ClientRecord = ClientLists & {
   workplace: string | null;
   children: string | null;
   parents: string | null;
+  billing_day: number | null;
   active: boolean;
 };
 
@@ -200,6 +204,7 @@ export function registerClient(supabase: SupabaseClient, me: Pick<Me, "id" | "ro
   return attempt(async () => {
     const parsed = clientSchema.safeParse(input);
     if (!parsed.success) return { error: parsed.error.issues[0].message };
+    if (parsed.data.billing_day === null) return { error: paymentCopy.billingDayRequired };
     if (!me.studioId) return { error: "Sessão expirada. Entre novamente." };
     const allowed = await getTeachableModalities(supabase, me);
     const checked = checkEnrollments(enrollments, allowed, me);

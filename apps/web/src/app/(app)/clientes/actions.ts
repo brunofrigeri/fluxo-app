@@ -29,6 +29,7 @@ function readClient(formData: FormData): api.ClientInput {
     workplace: orNull(text(formData.get("workplace"))),
     children: orNull(text(formData.get("children"))),
     parents: orNull(text(formData.get("parents"))),
+    billing_day: orNull(text(formData.get("billing_day"))) === null ? null : Number(text(formData.get("billing_day"))),
   };
 }
 

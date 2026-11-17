@@ -19,7 +19,7 @@ for (const device of [
     await signUp(page, newAccount());
     await open(page, "/usuarios");
 
-    await expect(browser.locator(NAV_LABELS)).toHaveText(["Home", "Agenda", "Clientes", "Espera", "Usuários", "Ajustes"]);
+    await expect(browser.locator(NAV_LABELS)).toHaveText(["Home", "Agenda", "Clientes", "Espera", "Pagam.", "Usuários", "Ajustes"]);
 
     const bar = (await browser.locator("aside.side").boundingBox())!;
     expect(Math.round(bar.y + bar.height)).toBe(device.height);

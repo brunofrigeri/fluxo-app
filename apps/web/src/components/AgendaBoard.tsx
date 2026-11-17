@@ -13,7 +13,7 @@ import type { Modality } from "@/lib/modalities";
 type Add = { date: string; hour: number; clientId?: string; missId?: string; slotCount?: number; modalityId?: string };
 
 export function AgendaBoard({
-  colsCls, days, byDate, today, nowTop, hours, rowPx, compact, initialAdd, initialClients, modalities, filterModalityId, isAdmin, chipInstructor,
+  colsCls, days, byDate, today, nowTop, hours, rowPx, compact, initialAdd, initialClients, modalities, filterModalityId, isAdmin, chipInstructor, belowHeader,
 }: {
   colsCls: string;
   days: string[];
@@ -31,6 +31,8 @@ export function AgendaBoard({
   isAdmin: boolean;
   /** Show each booking's instructor on its chip (admin looking at everyone). */
   chipInstructor: boolean;
+  /** Rendered between the day headings and the hours (the "Vencem" strip of the payments chip). */
+  belowHeader?: React.ReactNode;
 }) {
   const [add, setAdd] = useState<Add | null>(initialAdd);
   const [clients, setClients] = useState<DialogClient[] | null>(initialClients);
@@ -80,6 +82,8 @@ export function AgendaBoard({
           );
         })}
       </div>
+
+      {belowHeader}
 
       <div className={colsCls} style={{ display: "grid", paddingTop: 10 }}>
         <div className="hours">

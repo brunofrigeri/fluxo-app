@@ -3,10 +3,12 @@ import Link from "next/link";
 import { Icon, type IconName } from "@fluxo/ui-web";
 import { ModalityTag } from "@/components/ModalityTag";
 import { Seg } from "@/components/Seg";
+import { PaymentActions } from "@/components/PaymentActions";
 import { StatusMenu } from "@/components/StatusMenu";
 import { getAdmin } from "@/lib/admin";
 import { initialsOf } from "@fluxo/domain";
-import { formatLong, greeting } from "@fluxo/domain";
+import { formatBR, formatLong, greeting } from "@fluxo/domain";
+import { paymentCopy } from "@fluxo/copy";
 import { getStudioModalities, pickModality } from "@/lib/modalities";
 import { getHomeData } from "@/lib/queries/home";
 
@@ -48,7 +50,7 @@ export default async function HomePage({ searchParams }: { searchParams: Promise
   const filter = pickModality(sp.mod, studioModalities);
   const [admin, data] = await Promise.all([getAdmin(), getHomeData(filter?.id)]);
   const manyModalities = studioModalities.length > 1;
-  const { slots, unmarked, missingEvolution, toReschedule, attention, birthdays, attendance } = data;
+  const { slots, unmarked, missingEvolution, toReschedule, attention, birthdays, attendance, payments } = data;
   const yesterdayPending = unmarked.length + missingEvolution.length;
 
   return (
@@ -156,6 +158,31 @@ export default async function HomePage({ searchParams }: { searchParams: Promise
           </section>
         </div>
       </div>
+
+      {/* Pagamentos sem atualização: due dates that passed and were never marked paid (admins only; empty for instructors). */}
+      {admin?.role === "admin" && (
+        <section className="card" aria-label={paymentCopy.homeTitle} style={{ margin: "20px 0" }}>
+          <CardHead icon="archive" title={paymentCopy.homeTitle} count={payments.total} />
+          {payments.items.length === 0 ? (
+            <Empty>{paymentCopy.homeEmpty}</Empty>
+          ) : (
+            <>
+              {payments.items.slice(0, 8).map((p) => (
+                <div className="li" key={p.clientId} style={{ flexWrap: "wrap" }}>
+                  <div className="grow">
+                    <ClientLink id={p.clientId} name={p.name} />
+                    <div className="t-small muted">
+                      Venceu em {formatBR(p.dueDate)}{p.count > 1 ? ` · ${p.count} vencimentos em aberto` : ""}{p.unpaid ? " · marcado como não pago" : ""}
+                    </div>
+                  </div>
+                  <PaymentActions clientId={p.clientId} dueDate={p.dueDate} status={p.unpaid ? "unpaid" : "pending"} overdue compact />
+                </div>
+              ))}
+              {payments.total > 8 && <Link className="btn sm" href="/pagamentos?estado=atrasados" style={{ marginTop: 10 }}>Ver todos ({payments.total})</Link>}
+            </>
+          )}
+        </section>
+      )}
 
       <div className="home-row">
         {/* 4. Clientes em atenção */}

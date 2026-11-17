@@ -2,6 +2,7 @@ import type { SupabaseClient } from "@supabase/supabase-js";
 import { addDays, formatDayMonth, formatShort, formatWeekdayDate, hhmm, isPresent, todayISO, weekdayOf, type AttendanceStatus } from "@fluxo/domain";
 import type { ModalityKey } from "@fluxo/forms";
 import { modalityKeyOf } from "./agenda";
+import { getOverduePayments, type OverduePayment } from "./payments";
 
 export type SlotClient = { bookingId: string; clientId: string; name: string; status: AttendanceStatus | null; missReason: string | null; modalityKey: ModalityKey | null; label: string | null };
 export type Slot = { time: string; clients: SlotClient[] };
@@ -18,6 +19,8 @@ export type HomeData = {
   attention: Attention[];
   birthdays: Birthday[];
   attendance: { rate: number | null; deltaPoints: number | null };
+  /** Due dates in the past that the studio did not mark as paid. Empty for instructors (payments are admin-only). */
+  payments: { items: OverduePayment[]; total: number };
 };
 
 type BookingRow = {
@@ -52,7 +55,7 @@ export async function getHomeData(supabase: SupabaseClient, modalityId?: string 
   const weekStart = addDays(today, -((weekdayOf(today) + 6) % 7)); // Monday
   const prevWeekStart = addDays(weekStart, -7);
 
-  const [todayRes, yRes, missRes, unjRes, clientsRes, upcomingRes, attRes] = await Promise.all([
+  const [todayRes, yRes, missRes, unjRes, clientsRes, upcomingRes, attRes, payments] = await Promise.all([
     supabase.from("bookings").select(BOOKING_COLUMNS).eq("date", today).order("start_time"),
     supabase.from("bookings").select(BOOKING_COLUMNS).eq("date", yesterday).order("start_time"),
     supabase
@@ -71,6 +74,7 @@ export async function getHomeData(supabase: SupabaseClient, modalityId?: string 
     supabase.from("clients").select("id, name, date_of_birth").eq("active", true),
     supabase.from("bookings").select("client_id, modality_id").gte("date", today).lte("date", addDays(today, 7)),
     supabase.from("bookings").select("date, status, modality_id").gte("date", prevWeekStart).lte("date", today).not("status", "is", null),
+    getOverduePayments(supabase, today),
   ]);
   fail("sessões de hoje", todayRes.error);
   fail("sessões de ontem", yRes.error);
@@ -171,6 +175,7 @@ export async function getHomeData(supabase: SupabaseClient, modalityId?: string 
     toReschedule,
     attention: attention.slice(0, 5),
     birthdays,
+    payments,
     attendance: { rate: thisWeek, deltaPoints: thisWeek !== null && lastWeek !== null ? thisWeek - lastWeek : null },
   };
 }

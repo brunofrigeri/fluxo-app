@@ -40,12 +40,18 @@ export async function signIn(page: Page, account: Pick<Account, "email" | "passw
   await screen.getByRole("button", "Entrar").click();
 }
 
+/** The day of the month it is in the studio's time zone: a payment day that falls due today. */
+export function todayDay(): number {
+  return Number(new Intl.DateTimeFormat("en-CA", { timeZone: "America/Sao_Paulo" }).format(new Date()).slice(8));
+}
+
 /** Creates a Pilates client from /clientes/novo and returns once the client page is open. */
-export async function createClient(page: Page, name: string): Promise<void> {
+export async function createClient(page: Page, name: string, billingDay = 10): Promise<void> {
   const { screen } = page;
   await open(page, "/clientes/novo");
   await screen.getByLabel("Documento").fill(newDocument());
   await screen.getByPlaceholder("Nome completo").fill(name);
+  await screen.getByLabel("Dia do pagamento").fill(String(billingDay));
   await screen.getByRole("button", "Salvar").click();
   await screen.getByRole("heading", name).waitFor();
 }
