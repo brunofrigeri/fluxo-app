@@ -1,9 +1,11 @@
 import { getHomeData, pickModality } from "@fluxo/api";
-import { formatLong, greeting, isPresent } from "@fluxo/domain";
+import { paymentCopy } from "@fluxo/copy";
+import { formatBR, formatLong, greeting, isPresent } from "@fluxo/domain";
 import { useQuery } from "@tanstack/react-query";
 import { useRouter } from "expo-router";
 import { useState } from "react";
 import { Pressable, View } from "react-native";
+import { PaymentActions } from "@/features/payments/PaymentActions";
 import { useMe } from "@/lib/me";
 import { useSetStatus } from "@/lib/hooks/useSetStatus";
 import { supabase } from "@/lib/supabase";
@@ -25,7 +27,7 @@ import type { AttendanceStatus } from "@fluxo/domain";
 type Target = { bookingId: string; name: string; status: AttendanceStatus | null; missReason: string | null };
 
 export default function Home() {
-  const { me, studioModalities } = useMe();
+  const { me, studioModalities, isAdmin } = useMe();
   const theme = useTheme();
   const router = useRouter();
   const [mod, setMod] = useState("all");
@@ -122,6 +124,26 @@ export default function Home() {
               ))
             )}
           </Card>
+
+          {/* Pagamentos sem atualização (admins): due dates that passed and were never marked paid. */}
+          {isAdmin && (
+            <Card>
+              <Header icon="archive" title={paymentCopy.homeTitle} count={data.payments.total} />
+              {data.payments.items.length === 0 ? (
+                <Empty>{paymentCopy.homeEmpty}</Empty>
+              ) : (
+                <>
+                  {data.payments.items.slice(0, 8).map((p) => (
+                    <View key={p.clientId} style={{ gap: 8 }}>
+                      <Row name={clientLink(p.clientId, p.name)} detail={`Venceu em ${formatBR(p.dueDate)}${p.count > 1 ? ` · ${p.count} vencimentos em aberto` : ""}${p.unpaid ? " · marcado como não pago" : ""}`} />
+                      <View style={{ alignItems: "flex-end" }}><PaymentActions clientId={p.clientId} dueDate={p.dueDate} status={p.unpaid ? "unpaid" : "pending"} overdue /></View>
+                    </View>
+                  ))}
+                  {data.payments.total > 8 && <Button kind="secondary" label={`Ver todos (${data.payments.total})`} onPress={() => router.push("/pagamentos")} />}
+                </>
+              )}
+            </Card>
+          )}
 
           {/* 4. Clientes em atenção */}
           <Card>

@@ -8,7 +8,7 @@ export const ALLOWED_DOCUMENT_TYPES = ["application/pdf", "image/jpeg", "image/p
 export type DocumentItem = { id: string; name: string; mimeType: string; sizeBytes: number; createdAt: string };
 
 export async function listDocuments(supabase: SupabaseClient, clientId: string): Promise<DocumentItem[]> {
-  const { data, error } = await supabase.from("documents").select("id, name, mime_type, size_bytes, created_at").eq("client_id", clientId).order("created_at", { ascending: false });
+  const { data, error } = await supabase.from("documents").select("id, name, mime_type, size_bytes, created_at").eq("client_id", clientId).is("payment_id", null).order("created_at", { ascending: false });
   if (error) throw new Error(`documentos: ${error.message}`);
   return (data ?? []).map((d) => ({ id: d.id as string, name: d.name as string, mimeType: d.mime_type as string, sizeBytes: d.size_bytes as number, createdAt: d.created_at as string }));
 }
@@ -38,6 +38,8 @@ export type UploadInput = {
   sizeBytes: number;
   /** Shown name; the file name when empty. */
   label?: string;
+  /** Makes this file the receipt of a payment: admins only, kept apart from the client's own documents. */
+  paymentId?: string;
 };
 
 /** Uploads to the private bucket, then records it. If recording fails the file is removed again. */
@@ -49,10 +51,11 @@ export function uploadDocument(supabase: SupabaseClient, input: UploadInput): Pr
 
     const label = input.label?.trim() || input.fileName;
     const ext = input.fileName.includes(".") ? input.fileName.slice(input.fileName.lastIndexOf(".")) : "";
-    const path = `${input.clientId}/${randomId()}${ext}`;
+    // Receipts live under "<clientId>/payments/": storage policies hide that folder from non-admins.
+    const path = input.paymentId ? `${input.clientId}/payments/${randomId()}${ext}` : `${input.clientId}/${randomId()}${ext}`;
     const { error: uploadError } = await supabase.storage.from(DOCUMENTS_BUCKET).upload(path, input.body, { contentType: input.mimeType });
     if (uploadError) return { error: friendly(uploadError) };
-    const { error } = await supabase.from("documents").insert({ client_id: input.clientId, name: label, storage_path: path, mime_type: input.mimeType, size_bytes: input.sizeBytes });
+    const { error } = await supabase.from("documents").insert({ client_id: input.clientId, name: label, storage_path: path, mime_type: input.mimeType, size_bytes: input.sizeBytes, payment_id: input.paymentId ?? null });
     if (error) {
       await supabase.storage.from(DOCUMENTS_BUCKET).remove([path]);
       return { error: friendly(error) };

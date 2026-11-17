@@ -24,7 +24,7 @@ export default function NewClient() {
 
   return (
     <Screen back title="Novo cliente">
-      <ClientForm initial={EMPTY_CLIENT} picked={{}} modalities={choices} canEditModalities canReassign={isAdmin} submitLabel="Criar cliente" onSubmit={create} />
+      <ClientForm initial={EMPTY_CLIENT} picked={{}} modalities={choices} canEditModalities canReassign={isAdmin} canEditBilling submitLabel="Criar cliente" onSubmit={create} />
     </Screen>
   );
 }

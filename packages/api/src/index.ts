@@ -11,3 +11,4 @@ export * from "./clients";
 export * from "./records";
 export * from "./documents";
 export * from "./admin";
+export * from "./payments";

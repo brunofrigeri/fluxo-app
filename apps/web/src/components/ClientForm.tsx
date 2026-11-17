@@ -4,7 +4,7 @@ import Link from "next/link";
 import { useState } from "react";
 import type { ModalityKey } from "@fluxo/forms";
 import type { FormState } from "@/app/(app)/clientes/actions";
-import { MARITAL_OPTIONS, SEX_OPTIONS } from "@fluxo/copy";
+import { MARITAL_OPTIONS, SEX_OPTIONS, paymentCopy } from "@fluxo/copy";
 import { maskPhone } from "@fluxo/domain";
 import { useFormAction } from "@/lib/useFormAction";
 import { SubmitButton } from "./SubmitButton";
@@ -28,11 +28,13 @@ export type ClientValues = {
   workplace: string;
   children: string;
   parents: string;
+  /** 1-31, as typed. Required when registering a client. */
+  billing_day: string;
 };
 
 export const EMPTY_CLIENT: ClientValues = {
   document: "", name: "", email: "", phone: "", emergency_contact_name: "", emergency_contact_phone: "", date_of_birth: "",
-  sex: "", marital_status: "", city: "", profession: "", workplace: "", children: "", parents: "",
+  sex: "", marital_status: "", city: "", profession: "", workplace: "", children: "", parents: "", billing_day: "",
 };
 
 /** A modality the client can be enrolled in, with the people who teach it (for the responsible instructor). */
@@ -43,7 +45,7 @@ export type Enrollment = Record<string, string>;
 
 /** Dados pessoais. Used to create a client and to edit one (formId links the tag lists on the side). */
 export function ClientForm({
-  formId, values, action, cancelHref, saved, modalities, enrollment, canEditModalities, canReassign,
+  formId, values, action, cancelHref, saved, modalities, enrollment, canEditModalities, canReassign, canEditBilling, requireBilling = false,
 }: {
   formId: string;
   values: ClientValues;
@@ -57,6 +59,10 @@ export function ClientForm({
   canEditModalities: boolean;
   /** Only admins choose who is responsible; an instructor enrolling a client is the responsible one. */
   canReassign: boolean;
+  /** Anyone registering a client sets the payment day; afterwards only admins move it (a database rule). */
+  canEditBilling: boolean;
+  /** Registering a client asks for the day; editing a client that predates payments does not force it. */
+  requireBilling?: boolean;
 }) {
   const { state, onSubmit, pending } = useFormAction<FormState>(action, undefined);
   const [picked, setPicked] = useState<Enrollment>(() => (Object.keys(enrollment).length === 0 && modalities.length === 1 ? { [modalities[0].key]: "" } : enrollment));
@@ -140,6 +146,20 @@ export function ClientForm({
             <span className="t-small muted">Apenas administradores alteram as modalidades.</span>
           </div>
         )}
+      </div>
+
+      <hr className="hair" />
+
+      <div style={{ display: "flex", flexDirection: "column", gap: 14 }}>
+        <h2 className="t-h3">Pagamento</h2>
+        <div className="form-grid">
+          <div className="field">
+            <label className="label" htmlFor="billing_day">{paymentCopy.billingDay}</label>
+            {/* readOnly (not disabled) so the unchanged value is still sent when an instructor saves the form. */}
+            <input id="billing_day" name="billing_day" type="number" inputMode="numeric" min={1} max={31} step={1} className="input" defaultValue={values.billing_day} required={requireBilling} readOnly={!canEditBilling} placeholder="Ex.: 10" aria-describedby="billing_day-h" />
+            <span id="billing_day-h" className="help">{canEditBilling ? paymentCopy.billingDayHelp : "Apenas administradores alteram o dia do pagamento."}</span>
+          </div>
+        </div>
       </div>
 
       <hr className="hair" />

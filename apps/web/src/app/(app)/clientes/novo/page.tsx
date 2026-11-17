@@ -35,6 +35,8 @@ export default async function NewClientPage() {
           enrollment={{}}
           canEditModalities
           canReassign={canReassign}
+          canEditBilling
+          requireBilling
         />
         <p className="t-small muted" style={{ marginTop: 14 }}>Doenças, cirurgias, tratamentos e horários semanais são adicionados na página do cliente, depois de salvar.</p>
       </div>

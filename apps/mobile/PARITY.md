@@ -67,6 +67,15 @@ see "Verified on a simulator" at the end, and treat anything not listed there as
 - [x] Generic form renderer: text, textarea, choice, multichoice, boolean, number, date, rows, Pilates apparatus
       tree, tongue zones
 
+### Pagamentos (admins)
+Recorded by hand: the studio says "pago" or "não pago" for each due date. The app does not charge anything.
+- [x] Payment day (1–31) asked when a client is registered; only admins change it afterwards (database rule)
+- [x] Pagamentos screen (Mais): due dates of a month, filter Todos / Em atraso / Pagos / Não pagos, mark paid or not paid, undo
+- [x] Client tab "Pagamentos": every due date with its status, paid-on date, receipts per payment (PDF or image, up to 10 MB)
+- [x] Home: "Pagamentos sem atualização" lists clients with a due date in the past that nobody marked paid
+- [x] Agenda: "Pagamentos" chip shows who pays on each day (Dia, 3 dias, Semana as a "Vencem" row; Mês as a marker)
+- Instructors never see payments or receipts (RLS), only the payment day on the client form
+
 ### Espera
 - [x] List with period filter and counts, first in first listed
 - [x] Add, edit, remove (name, phone, period, modality)
@@ -100,6 +109,7 @@ see "Verified on a simulator" at the end, and treat anything not listed there as
 | Shared logic, request shapes and messages | `packages/api/test` | `npm test` |
 | Mobile-only routes the app calls (Bearer token, over HTTP) | `apps/web/test/api-users.integration.test.ts` | CI web job, `npm run test:api -w @fluxo/web` |
 | Web end to end | `apps/web/tests` | CI web job, `npm run e2e:local` |
+| Payments: due dates, RLS, receipts | `supabase/tests/payments.test.ts`, `packages/api/test/integration/payments.integration.test.ts` | `npm test`, CI web job |
 | Mobile typecheck, unit tests, Metro bundle | `apps/mobile` | CI mobile job |
 
 ## Verified on a simulator

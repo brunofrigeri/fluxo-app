@@ -18,8 +18,8 @@ export default function More() {
   const router = useRouter();
   const theme = useTheme();
 
-  const items: { label: string; icon: IconName; to: "/usuarios" | "/configuracoes" }[] = isAdmin
-    ? [{ label: "Usuários", icon: "shield", to: "/usuarios" }, { label: "Configurações", icon: "wave", to: "/configuracoes" }]
+  const items: { label: string; icon: IconName; to: "/usuarios" | "/configuracoes" | "/pagamentos" }[] = isAdmin
+    ? [{ label: "Pagamentos", icon: "archive", to: "/pagamentos" }, { label: "Usuários", icon: "shield", to: "/usuarios" }, { label: "Configurações", icon: "wave", to: "/configuracoes" }]
     : [];
 
   return (

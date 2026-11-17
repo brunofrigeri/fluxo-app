@@ -12,6 +12,7 @@ const ITEMS: { href: string; label: string; short?: string; icon: IconName }[] =
 ];
 
 const ADMIN_ITEMS: { href: string; label: string; short?: string; icon: IconName }[] = [
+  { href: "/pagamentos", label: "Pagamentos", short: "Pagam.", icon: "archive" },
   { href: "/usuarios", label: "Usuários", icon: "shield" },
   { href: "/configuracoes", label: "Configurações", short: "Ajustes", icon: "wave" },
 ];
