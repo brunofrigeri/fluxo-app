@@ -9,7 +9,8 @@
     "typecheck": "tsc --noEmit",
     "test": "tsx --tsconfig tsconfig.test.json --test test/*.test.ts test/*.test.tsx ../../supabase/tests/*.test.ts",
     "test:e2e": "e2e run",
-    "e2e:local": "bash ../../scripts/e2e-local.sh"
+    "e2e:local": "bash ../../scripts/e2e-local.sh",
+    "test:api": "tsx --tsconfig tsconfig.test.json --test test/api-users.integration.test.ts"
   },
   "dependencies": {
     "@fluxo/api": "*",

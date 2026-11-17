@@ -3,6 +3,10 @@ import { NextResponse, type NextRequest } from "next/server";
 import { supabaseEnv } from "@/lib/supabase/env";
 
 export async function middleware(request: NextRequest) {
+  // Route handlers under /api authenticate themselves with a Bearer token (the mobile app has no cookies), so the
+  // cookie-session redirect below must not run for them. They answer 401 on their own.
+  if (request.nextUrl.pathname.startsWith("/api/")) return NextResponse.next();
+
   let response = NextResponse.next({ request });
   const { url, key } = supabaseEnv();
 

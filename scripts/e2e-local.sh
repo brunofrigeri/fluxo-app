@@ -35,4 +35,7 @@ for _ in $(seq 1 60); do
   sleep 1
 done
 
+# Routes the mobile app calls (Bearer token), against this running app and the local database.
+APP_URL="http://127.0.0.1:$PORT" SUPABASE_TEST_URL="$API_URL" SUPABASE_TEST_ANON_KEY="$ANON_KEY" SUPABASE_TEST_SERVICE_KEY="$SERVICE_ROLE_KEY" npm run test:api
+
 APP_URL="http://127.0.0.1:$PORT" E2E_TELEMETRY_DISABLED=1 npx e2e run --reporter list,junit "$@"

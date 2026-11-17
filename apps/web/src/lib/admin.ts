@@ -1,20 +1,10 @@
 import { cache } from "react";
+import { buildMe, type Me, type Role } from "@fluxo/api";
 import { createClient } from "@/lib/supabase/server";
 
-const TITLES = /^(dr|dra|sr|sra)\.?$/i;
-
-export type Role = "admin" | "instructor";
-export type Admin = { id: string; email: string; name: string; firstName: string; initials: string; role: Role; workingHours: string | null; studioId: string | null };
-
-export function buildAdmin(meta: Record<string, unknown> | undefined, email: string, id: string, role: Role, workingHours: string | null, studioId: string | null, profileName?: string | null): Admin {
-  // The name an admin edits on Usuários lives in `profiles.name`; auth metadata is only what was typed at signup/invite.
-  const fromMeta = (meta?.full_name ?? meta?.name) as string | undefined;
-  const name = profileName?.trim() || fromMeta?.trim() || email.split("@")[0];
-  const parts = name.split(/\s+/).filter((p) => p && !TITLES.test(p));
-  const firstName = parts[0] ?? name;
-  const initials = parts.length === 0 ? "?" : (parts[0][0] + (parts.length > 1 ? parts[parts.length - 1][0] : "")).toUpperCase();
-  return { id, email, name, firstName, initials, role, workingHours, studioId };
-}
+export type { Role };
+export type Admin = Me;
+export const buildAdmin = buildMe;
 
 /**
  * Self-signup only creates the auth user (see src/app/signup/actions.ts) — there's no
