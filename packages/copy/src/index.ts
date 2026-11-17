@@ -6,5 +6,5 @@ export { weekdayShort, weekdayName, weekdaySuffix, monthName, greetings } from "
 export { periodLabels, waitlistMessages } from "./waitlist";
 export { roleLabels } from "./roles";
 export { SEX_OPTIONS, MARITAL_OPTIONS } from "./options";
-export { landing } from "./landing";
+export { landing, type DemoStatus } from "./landing";
 export { auth } from "./auth";
