@@ -4,7 +4,9 @@ import Link from "next/link";
 import { AgendaClient } from "@/components/AgendaClient";
 import { Icon } from "@fluxo/ui-web";
 import { Seg } from "@/components/Seg";
+import * as api from "@fluxo/api";
 import { getAdmin } from "@/lib/admin";
+import { createClient } from "@/lib/supabase/server";
 import { getInstructorsByModality, getStudioModalities, getTeachableModalities, pickModality } from "@/lib/modalities";
 import { dayNumber, minuteOfDayNow, todayISO } from "@fluxo/domain";
 import {
@@ -44,7 +46,11 @@ export default async function AgendaPage({ searchParams }: { searchParams: Promi
   const [studioModalities, teachable] = await Promise.all([getStudioModalities(), me ? getTeachableModalities(me) : Promise.resolve([])]);
   const filter = pickModality(sp.mod, studioModalities);
   const mod = filter?.key;
-  const bookings = await getAgendaBookings(range.from, range.to, filter?.id);
+  // Payments are admin-only; they feed the "Pagamentos" chip.
+  const [bookings, payments] = await Promise.all([
+    getAgendaBookings(range.from, range.to, filter?.id),
+    me?.role === "admin" ? createClient().then((s) => api.listPaymentCycles(s, range.from, range.to, today)) : Promise.resolve([]),
+  ]);
   // For the admin's "Instrutor" filter: everyone who teaches something in this studio.
   const instructors = me?.role === "admin" ? [...new Map([...(await getInstructorsByModality()).values()].flat().map((i) => [i.id, i])).values()].sort((a, b) => a.name.localeCompare(b.name)) : [];
 
@@ -125,6 +131,7 @@ export default async function AgendaPage({ searchParams }: { searchParams: Promi
           isAdmin={me?.role === "admin"}
           meId={me?.id ?? ""}
           instructors={instructors}
+          payments={payments}
           dayHrefs={Object.fromEntries(range.days.map((d) => [d, href({ vista: "dia", data: d, mod })]))}
         />
       </section>

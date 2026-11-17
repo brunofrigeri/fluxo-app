@@ -29,6 +29,7 @@ test("a client needs a name and a document", async (page) => {
 
   await screen.getByLabel("Documento").fill(newDocument());
   await screen.getByPlaceholder("Nome completo").fill("A");
+  await screen.getByLabel("Dia do pagamento").fill("10");
   await screen.getByRole("button", "Salvar").click();
   await expect(browser.locator(".errmsg")).toContainText("Informe o nome");
 });
@@ -42,7 +43,19 @@ test("two clients cannot share a document", async (page) => {
     await open(page, "/clientes/novo");
     await screen.getByLabel("Documento").fill(document);
     await screen.getByPlaceholder("Nome completo").fill(name);
+    await screen.getByLabel("Dia do pagamento").fill("10");
     await screen.getByRole("button", "Salvar").click();
   }
   await expect(browser.locator(".errmsg")).toBeVisible();
+});
+
+test("a client cannot be registered without the payment day", async (page) => {
+  const { screen, browser } = page;
+  await signUp(page, newAccount());
+  await open(page, "/clientes/novo");
+  await screen.getByLabel("Documento").fill(newDocument());
+  await screen.getByPlaceholder("Nome completo").fill("Sem Dia Pagamento");
+  await screen.getByRole("button", "Salvar").click();
+  // The browser blocks the submit (the field is required): still on the form, nothing created.
+  await expect(browser).toHaveURL(/\/clientes\/novo/);
 });

@@ -147,3 +147,22 @@ select.input { appearance: auto; }
   .side .nav-i { font-size: 10px; padding: 0; }
   .side .me .avatar { width: 30px; height: 30px; font-size: 12px; }
 }
+
+/* payments */
+.pay-actions { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; justify-content: flex-end; }
+.pay-day { display: grid; grid-template-columns: 120px minmax(0, 1fr); gap: 12px; padding: 14px 0; border-top: 1px solid var(--line); }
+.pay-day:first-child { border-top: 0; }
+.pay-date { display: flex; flex-direction: column; align-items: flex-start; gap: 6px; padding-top: 6px; }
+.pay-row { display: flex; align-items: center; gap: 12px; min-height: 48px; flex-wrap: wrap; }
+.seg a { white-space: nowrap; }
+@media (max-width: 640px) {
+  .pay-day { grid-template-columns: minmax(0, 1fr); gap: 4px; }
+  .pay-date { flex-direction: row; align-items: center; padding-top: 0; }
+  /* name on its own line, status and actions under it */
+  .pay-row { padding: 6px 0; }
+  .pay-row > .grow { flex: 1 1 100%; }
+  .pay-actions { justify-content: space-between; width: 100%; }
+}
+.pay-item { display: flex; flex-direction: column; gap: 12px; padding: 18px 24px; border-top: 1px solid var(--line); }
+.pay-item:first-of-type { border-top: 0; }
+.sr-label { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }

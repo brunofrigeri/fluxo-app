@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { ClientForm } from "@/components/ClientForm";
+import { ClientPayments } from "@/components/ClientPayments";
 import { ConfirmButton } from "@/components/ConfirmButton";
 import { EvaluationsPanel, type EvaluationRow } from "@/components/EvaluationsPanel";
 import { Icon } from "@fluxo/ui-web";
@@ -36,7 +37,8 @@ export async function generateMetadata({ params }: { params: Promise<Params> }):
 export default async function ClientPage({ params, searchParams }: { params: Promise<Params>; searchParams: Promise<Search> }) {
   const { id } = await params;
   const sp = await searchParams;
-  const aba = sp.aba === "evolucoes" || sp.aba === "avaliacoes" ? sp.aba : "dados";
+  const wantsPayments = sp.aba === "pagamentos";
+  const aba = sp.aba === "evolucoes" || sp.aba === "avaliacoes" ? sp.aba : wantsPayments ? "pagamentos" : "dados";
   const supabase = await createClient();
 
   const [me, clientRes, slotsRes, enrollRes, studioModalities, byModality] = await Promise.all([
@@ -75,7 +77,7 @@ export default async function ClientPage({ params, searchParams }: { params: Pro
         {aba !== "dados" && (
           <>
             <Icon name="chevr" size={14} />
-            <span>{aba === "evolucoes" ? "Evoluções" : "Avaliações"}</span>
+            <span>{aba === "evolucoes" ? "Evoluções" : aba === "pagamentos" ? "Pagamentos" : "Avaliações"}</span>
           </>
         )}
       </nav>
@@ -112,6 +114,7 @@ export default async function ClientPage({ params, searchParams }: { params: Pro
           { href: `${base}?aba=dados`, label: "Dados", on: aba === "dados" },
           { href: `${base}?aba=evolucoes`, label: "Evoluções", on: aba === "evolucoes" },
           { href: `${base}?aba=avaliacoes`, label: "Avaliações", on: aba === "avaliacoes" },
+          ...(canReassign ? [{ href: `${base}?aba=pagamentos`, label: "Pagamentos", on: aba === "pagamentos" }] : []),
         ]}
       />
 
@@ -134,6 +137,7 @@ export default async function ClientPage({ params, searchParams }: { params: Pro
               workplace: (client.workplace as string | null) ?? "",
               children: (client.children as string | null) ?? "",
               parents: (client.parents as string | null) ?? "",
+              billing_day: client.billing_day === null || client.billing_day === undefined ? "" : String(client.billing_day),
             }}
             action={updateClientAction.bind(null, id)}
             cancelHref={`${base}?aba=dados`}
@@ -142,6 +146,7 @@ export default async function ClientPage({ params, searchParams }: { params: Pro
             enrollment={enrollment}
             canEditModalities={canReassign}
             canReassign={canReassign}
+            canEditBilling={canReassign}
           />
 
           <div style={{ display: "flex", flexDirection: "column", gap: 20 }}>
@@ -224,6 +229,7 @@ export default async function ClientPage({ params, searchParams }: { params: Pro
         </div>
       )}
 
+      {aba === "pagamentos" && canReassign && <ClientPayments clientId={id} />}
       {aba === "evolucoes" && <EvolutionsTab clientId={id} pagina={sp.pagina} enrolled={enrolled} filter={pickModality(sp.modalidade, enrolled)} />}
       {aba === "avaliacoes" && <EvaluationsTab clientId={id} selected={sp.avaliacao} today={today} enrolled={enrolled} filter={pickModality(sp.modalidade, enrolled)} newModality={pickModality(sp.modalidade, enrolled) ?? (enrolled.length === 1 ? enrolled[0] : null)} />}
     </>
