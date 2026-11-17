@@ -1,8 +1,10 @@
 name: Web (studio app)
 
 # Pull requests: typecheck, unit tests and e2e.
-# Pushes to master: the same, and then (only if every job passed) the production deploy to Vercel.
+# Pushes to master: the same, then any new database migrations are applied to production (after a manual approval),
+# and only then (if every job passed) the production deploy to Vercel.
 # Vercel's own Git auto-deploy for master is switched off in vercel.json, so this workflow is the only way a release goes out.
+# Migrations: see "Database migrations" in the README for the one-time setup (secrets, baseline, approval).
 
 # Runs only when something the web app depends on changes. Landing and mobile have their own workflows.
 on:
@@ -131,10 +133,100 @@ jobs:
             apps/web/app.log
           if-no-files-found: ignore
 
+  # ---------------------------------------------------------------- database migrations
+
+  migrations-dry-run:
+    name: Migrations (dry run against production)
+    if: github.event_name == 'pull_request' && github.event.pull_request.head.repo.full_name == github.repository
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    env:
+      SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
+      SUPABASE_DB_PASSWORD: ${{ secrets.SUPABASE_DB_PASSWORD }}
+      SUPABASE_PROJECT_ID: ${{ secrets.SUPABASE_PROJECT_ID }}
+    steps:
+      - uses: actions/checkout@v4
+      - name: Not configured
+        if: env.SUPABASE_ACCESS_TOKEN == '' || env.SUPABASE_PROJECT_ID == ''
+        run: echo "::notice::Production database secrets are not set, so the migration dry run was skipped. See the README, 'Database migrations'."
+      - uses: supabase/setup-cli@v1
+        if: env.SUPABASE_ACCESS_TOKEN != '' && env.SUPABASE_PROJECT_ID != ''
+        with:
+          version: 3.1.0
+      # Read-only: it lists what would run and fails if the history does not match (a migration that was edited
+      # after it ran, or one that is missing here). Nothing is changed in the database.
+      - name: Show what would be applied
+        if: env.SUPABASE_ACCESS_TOKEN != '' && env.SUPABASE_PROJECT_ID != ''
+        run: |
+          supabase link --project-ref "$SUPABASE_PROJECT_ID"
+          supabase db push --dry-run
+
+  migrations-changed:
+    name: Migrations changed?
+    if: github.event_name == 'push' && github.ref == 'refs/heads/master'
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    outputs:
+      changed: ${{ steps.diff.outputs.changed }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - id: diff
+        run: |
+          before="${{ github.event.before }}"
+          if [ -z "$before" ] || [ "$before" = "0000000000000000000000000000000000000000" ] || ! git cat-file -e "$before^{commit}" 2>/dev/null; then
+            echo "changed=true" >> "$GITHUB_OUTPUT"   # cannot tell: assume yes, db push is a no-op when nothing is pending
+          elif git diff --name-only "$before" "${{ github.sha }}" -- supabase/migrations | grep -q .; then
+            echo "changed=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "changed=false" >> "$GITHUB_OUTPUT"
+          fi
+
+  migrate:
+    name: Apply migrations (production)
+    needs: [checks, e2e, migrations-changed]
+    if: needs.migrations-changed.outputs.changed == 'true'
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    # The "production-database" environment (Settings > Environments) holds the approval rule: the job waits there
+    # until a reviewer approves, so nothing touches the live database without a person saying so.
+    environment: production-database
+    # One at a time, never cancelled halfway.
+    concurrency:
+      group: production-migrations
+      cancel-in-progress: false
+    env:
+      SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
+      SUPABASE_DB_PASSWORD: ${{ secrets.SUPABASE_DB_PASSWORD }}
+      SUPABASE_PROJECT_ID: ${{ secrets.SUPABASE_PROJECT_ID }}
+    steps:
+      - uses: actions/checkout@v4
+      - name: Require the production database secrets
+        run: |
+          missing=0
+          for v in SUPABASE_ACCESS_TOKEN SUPABASE_DB_PASSWORD SUPABASE_PROJECT_ID; do
+            if [ -z "${!v}" ]; then echo "::error::Secret $v is not set (README, 'Database migrations')."; missing=1; fi
+          done
+          exit $missing
+      - uses: supabase/setup-cli@v1
+        with:
+          version: 3.1.0
+      - name: Link the production project
+        run: supabase link --project-ref "$SUPABASE_PROJECT_ID"
+      - name: Pending migrations
+        run: supabase db push --dry-run
+      - name: Apply
+        run: supabase db push
+
   deploy:
     name: Deploy to Vercel (production)
-    needs: [checks, e2e]
-    if: github.event_name == 'push' && github.ref == 'refs/heads/master'
+    # Runs after the migrations, so the new code never meets an old schema. `migrate` is skipped when no migration changed.
+    needs: [checks, e2e, migrations-changed, migrate]
+    if: >-
+      always() && github.event_name == 'push' && github.ref == 'refs/heads/master'
+      && needs.checks.result == 'success' && needs.e2e.result == 'success' && needs.migrations-changed.result == 'success'
+      && (needs.migrate.result == 'success' || needs.migrate.result == 'skipped')
     runs-on: ubuntu-latest
     timeout-minutes: 20
     # Never cancel a deploy halfway; later pushes queue behind it.

@@ -174,7 +174,7 @@ Never prefix the service-role key with `NEXT_PUBLIC_`, and never use it anywhere
 ## Set up Supabase (São Paulo region)
 
 1. Create a project in the `South America (São Paulo)` region.
-2. SQL editor: run the migrations in order, `0001` through `0012`. If you already ran some, run only the new files. Optionally run `supabase/seed.sql` for fictional development data only.
+2. Apply the migrations in `supabase/migrations/`. For a brand-new project, `supabase link --project-ref <ref>` then `supabase db push` applies all of them in order (or paste them in the SQL editor, `0001` upwards). After that CI applies new ones for you, see [Database migrations](#database-migrations). Optionally run `supabase/seed.sql` for fictional development data only.
 3. Authentication > Providers > Email: turn **on** "Allow new users to sign up". Self-signup (`/signup`) needs it. Older versions of this README said to turn it off; that was for the single-admin model.
 4. Authentication > URL Configuration: set the Site URL to your app's domain. Invite links redirect to `/convite` on it.
 5. Project Settings > API: copy the project URL, the anon key and the service-role key into `.env.local`.
@@ -186,13 +186,47 @@ Upgrading an existing single-admin database: 0006 turns existing accounts into a
 
 Recurring slots become bookings through `select generate_bookings(8)`. The SQL file has a commented `pg_cron` line to run it daily.
 
+
+## Database migrations
+
+New files in `supabase/migrations/` reach the production database from CI, not from the SQL editor.
+
+- **On a pull request** that touches `supabase/**`: the "Migrations (dry run)" job runs `supabase db push --dry-run` against production. It only lists what would run and fails if the history does not match; nothing is changed.
+- **On a push to `master`** with changed migrations: the "Apply migrations (production)" job waits for an approval, runs `supabase db push`, and only then does the Vercel deploy start. The new code never meets an old schema. With no new migration, the job is skipped and the deploy goes ahead as before.
+- `npm test` checks the file names (`NNNN_description.sql`, unique, no gaps), because the CLI orders by that number.
+- Write a migration so the **old code still works after it ran** where you can (add columns and tables first, remove things in a later release). The migration is applied just before the deploy, so for a moment the old app runs on the new schema.
+- Migrations are forward-only: there is no automatic undo. Take a backup before a destructive one (dropping columns or tables). The approval step is the moment to decide that.
+
+### One-time setup
+
+1. **Secrets** (repository Settings > Secrets and variables > Actions): `SUPABASE_ACCESS_TOKEN` (a personal token from supabase.com/dashboard/account/tokens), `SUPABASE_DB_PASSWORD` (the database password) and `SUPABASE_PROJECT_ID` (the project reference, the `xxxx` in `xxxx.supabase.co`).
+2. **Approval**: Settings > Environments > New environment, named `production-database`, then "Required reviewers" and add yourself (and whoever else may approve).
+3. **Baseline**: the hosted database has no migration history because the files were run by hand. Tell it which ones are already applied, once, from your machine:
+
+   ```bash
+   supabase login
+   supabase link --project-ref <your project ref>
+   supabase migration list                 # Remote column empty
+   scripts/supabase-baseline.sh 0013       # the LAST migration already applied in production
+   supabase migration list                 # Local and Remote now match up to 0013
+   ```
+
+   The script only writes the history table; it does not run any migration. Use the number of the last file you really ran.
+
+Until the secrets exist, the dry run is skipped with a notice, and a push to `master` that changes a migration **fails** at the apply job (so the deploy is held) instead of silently skipping it.
+
+### Running it by hand
+
+`supabase link --project-ref <ref>`, `supabase db push --dry-run` to look, `supabase db push` to apply. Never point the e2e tests at this project: they use a throwaway local one (`npm run e2e:local`).
+
 ## Tests and releases (CI)
 
 `.github/workflows/web.yml` (the studio app) runs on every pull request that touches it and every push to `master`:
 
 1. **checks**: `npm run typecheck` and `npm test`.
 2. **e2e**: starts a throwaway local Supabase from `supabase/migrations` (never the production project), builds and starts the app, and runs the [e2e](https://e2e.com/docs) tests.
-3. **deploy** (push to `master` only): runs **only if checks and e2e passed**, and deploys to Vercel production with the Vercel CLI.
+3. **migrate** (push to `master` with changed migrations only): waits for approval, then applies them to production, see [Database migrations](#database-migrations). On pull requests a dry run lists what would be applied.
+4. **deploy** (push to `master` only): runs **only if checks and e2e passed and the migrations (if any) were applied**, and deploys to Vercel production with the Vercel CLI.
 
 `apps/web/vercel.json` turns off Vercel's own auto-deploy for `master`, so a release can only go out through this workflow. Pull-request preview deployments from Vercel still work.
 
