@@ -1,5 +1,5 @@
-import { FIRST_HOUR, getAgendaBookings, getDialogClients, getInstructorsByModality, LAST_HOUR, monthCellLabel, pickModality, rangeFor, type AgendaBooking, type View as AgendaView } from "@fluxo/api";
-import { statusLabels, unmarkedLabel } from "@fluxo/copy";
+import { FIRST_HOUR, getAgendaBookings, getDialogClients, getInstructorsByModality, LAST_HOUR, listPaymentCycles, monthCellLabel, pickModality, rangeFor, type AgendaBooking, type PaymentCycle, type View as AgendaView } from "@fluxo/api";
+import { paymentCopy, statusLabels, unmarkedLabel } from "@fluxo/copy";
 import { dayNumber, formatWeekdayDate, todayISO, type AttendanceStatus } from "@fluxo/domain";
 import { MODALITY_LABELS } from "@fluxo/forms";
 import { useQuery } from "@tanstack/react-query";
@@ -9,6 +9,7 @@ import { Pressable, View } from "react-native";
 import { AddBookingSheet, type AddInitial } from "@/features/agenda/AddBookingSheet";
 import { BookingSheet } from "@/features/agenda/BookingSheet";
 import { ClassSheet } from "@/features/agenda/ClassSheet";
+import { paymentTone, usePaymentColors } from "@/features/payments/PaymentActions";
 import { useMe } from "@/lib/me";
 import { supabase } from "@/lib/supabase";
 import { Banner } from "@/ui/Banner";
@@ -18,6 +19,7 @@ import { Icon } from "@/ui/Icon";
 import { Pill } from "@/ui/Pill";
 import { Screen } from "@/ui/Screen";
 import { Seg } from "@/ui/Seg";
+import { ToggleChip } from "@/ui/ToggleChip";
 import { statusColors } from "@/ui/status";
 import { Text } from "@/ui/Text";
 import { useTheme } from "@/ui/theme";
@@ -43,6 +45,7 @@ export default function Agenda() {
   const [anchor, setAnchor] = useState<string | undefined>(undefined);
   const [mod, setMod] = useState("all");
   const [who, setWho] = useState<Who>("all");
+  const [showPay, setShowPay] = useState(false);
   const [classAt, setClassAt] = useState<{ date: string; hour: number } | null>(null);
   const [bookingId, setBookingId] = useState<string | null>(null);
   const [add, setAdd] = useState<AddInitial | null>(null);
@@ -59,6 +62,14 @@ export default function Agenda() {
     staleTime: 5 * 60_000,
     queryFn: async () => [...new Map([...(await getInstructorsByModality(supabase)).values()].flat().map((i) => [i.id, i])).values()].sort((a, b) => a.name.localeCompare(b.name)),
   });
+
+  // Due dates in the range, for the "Pagamentos" chip (admins). Only fetched once the chip is on.
+  const payQ = useQuery({ queryKey: ["agenda-payments", range.from, range.to], enabled: isAdmin && showPay, queryFn: () => listPaymentCycles(supabase, range.from, range.to) });
+  const dueByDate = useMemo(() => {
+    const map = new Map<string, PaymentCycle[]>();
+    for (const p of showPay ? (payQ.data ?? []) : []) map.set(p.dueDate, [...(map.get(p.dueDate) ?? []), p]);
+    return map;
+  }, [payQ.data, showPay]);
 
   // Deep link from Home ("Agendar reposição"): open the add sheet for that client and miss, once.
   useEffect(() => {
@@ -108,6 +119,11 @@ export default function Agenda() {
           items={[{ value: "all", label: "Todos" }, { value: "mine", label: "Só minhas" }, ...others.map((i) => ({ value: i.id, label: i.name.split(" ")[0] })), { value: "none", label: "Sem instrutor" }]}
         />
       )}
+      {isAdmin && (
+        <View style={{ flexDirection: "row", paddingHorizontal: 20 }}>
+          <ToggleChip label={paymentCopy.filterChip} on={showPay} onPress={() => setShowPay((v) => !v)} />
+        </View>
+      )}
       <View style={{ flexDirection: "row", alignItems: "center", gap: 8, paddingHorizontal: 20 }}>
         <Pressable accessibilityRole="button" accessibilityLabel="Anterior" onPress={() => setAnchor(range.prev)} hitSlop={10}><Icon name="chevl" size={22} /></Pressable>
         <Pressable accessibilityRole="button" accessibilityLabel="Próximo" onPress={() => setAnchor(range.next)} hitSlop={10}><Icon name="chevr" size={22} /></Pressable>
@@ -123,7 +139,7 @@ export default function Agenda() {
       {q.isPending && <Text color="ink2">Carregando…</Text>}
 
       {q.data && view === "mes" && (
-        <MonthGrid days={range.days} anchor={range.anchor} today={today} byDate={byDate} onPick={(d) => { setAnchor(d); setView("dia"); }} />
+        <MonthGrid days={range.days} anchor={range.anchor} today={today} byDate={byDate} dueByDate={dueByDate} onPick={(d) => { setAnchor(d); setView("dia"); }} />
       )}
 
       {q.data && view !== "mes" &&
@@ -139,6 +155,7 @@ export default function Agenda() {
                   <Icon name="plus" size={22} color={theme.accent} />
                 </Pressable>
               </View>
+              {showPay && (dueByDate.get(day) ?? []).length > 0 && <DueRow list={dueByDate.get(day) ?? []} onOpen={(clientId) => router.push({ pathname: "/clientes/[id]", params: { id: clientId, aba: "pagamentos" } })} />}
               {hours.length === 0 && <Text variant="small" color="ink3">Sem sessões</Text>}
               {hours.map((h) => {
                 const slot = list.filter((b) => b.hour === h);
@@ -186,6 +203,26 @@ export default function Agenda() {
   );
 }
 
+/** The payments that fall due on a day: one chip per client, colored by what the studio recorded. */
+function DueRow({ list, onOpen }: { list: PaymentCycle[]; onOpen: (clientId: string) => void }) {
+  const color = usePaymentColors();
+  return (
+    <View style={{ flexDirection: "row", flexWrap: "wrap", alignItems: "center", gap: 8 }}>
+      <Text variant="tiny" color="ink3">Vencem</Text>
+      {list.map((p) => {
+        const { tone, label } = paymentTone(p.status, p.overdue);
+        const c = color(tone);
+        return (
+          <Pressable key={p.clientId} accessibilityRole="link" accessibilityLabel={`${p.clientName}: pagamento, ${label}`} onPress={() => onOpen(p.clientId)} style={{ flexDirection: "row", alignItems: "center", gap: 6, minHeight: 32, paddingHorizontal: 10, borderRadius: 10, backgroundColor: c.bg }}>
+            <View style={{ width: 8, height: 8, borderRadius: 4, backgroundColor: c.dot }} />
+            <Text variant="small" style={{ color: c.fg, fontWeight: "600" }}>{p.clientName}</Text>
+          </Pressable>
+        );
+      })}
+    </View>
+  );
+}
+
 function Legend() {
   const theme = useTheme();
   return (
@@ -200,8 +237,9 @@ function Legend() {
   );
 }
 
-function MonthGrid({ days, anchor, today, byDate, onPick }: { days: string[]; anchor: string; today: string; byDate: Map<string, AgendaBooking[]>; onPick: (day: string) => void }) {
+function MonthGrid({ days, anchor, today, byDate, dueByDate, onPick }: { days: string[]; anchor: string; today: string; byDate: Map<string, AgendaBooking[]>; dueByDate: Map<string, PaymentCycle[]>; onPick: (day: string) => void }) {
   const theme = useTheme();
+  const color = usePaymentColors();
   return (
     <View style={{ borderRadius: 16, borderWidth: 1, borderColor: theme.line, backgroundColor: theme.surface, overflow: "hidden" }}>
       <View style={{ flexDirection: "row", borderBottomWidth: 1, borderBottomColor: theme.line }}>
@@ -229,6 +267,16 @@ function MonthGrid({ days, anchor, today, byDate, onPick }: { days: string[]; an
                 <Text variant="small" style={{ fontWeight: "700", color: isToday ? theme.accentInk : theme.ink }}>{dayNumber(day)}</Text>
               </View>
               {list.length > 0 && <Text variant="tiny" color="ink2" style={{ letterSpacing: 0 }}>{list.length}</Text>}
+              {(dueByDate.get(day) ?? []).length > 0 && (() => {
+                const due = dueByDate.get(day) ?? [];
+                const worst = due.some((p) => p.overdue) ? "jm" : due.every((p) => p.status === "paid") ? "ok" : "none";
+                return (
+                  <View accessibilityLabel={`${due.length} pagamentos`} style={{ flexDirection: "row", alignItems: "center", gap: 3 }}>
+                    <View style={{ width: 7, height: 7, borderRadius: 4, backgroundColor: color(worst).dot }} />
+                    <Text variant="tiny" color="ink2" style={{ letterSpacing: 0 }}>{due.length}</Text>
+                  </View>
+                );
+              })()}
               <View style={{ flexDirection: "row", gap: 3, flexWrap: "wrap", justifyContent: "center" }}>
                 {kinds.map((s) => (
                   <View key={s ?? "none"} style={{ width: 7, height: 7, borderRadius: 4, backgroundColor: statusColors(theme, s).dot }} />

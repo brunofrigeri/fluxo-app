@@ -26,7 +26,7 @@ export function DataTab({ detail, enrolled }: { detail: ClientDetail; enrolled: 
   const initial: ClientValues = {
     document: c.document, name: c.name, email: c.email ?? "", phone: c.phone ?? "", emergency_contact_name: c.emergency_contact_name ?? "", emergency_contact_phone: c.emergency_contact_phone ?? "",
     date_of_birth: c.date_of_birth ?? "", sex: c.sex ?? "", marital_status: c.marital_status ?? "", city: c.city ?? "", profession: c.profession ?? "", workplace: c.workplace ?? "",
-    children: c.children ?? "", parents: c.parents ?? "",
+    children: c.children ?? "", parents: c.parents ?? "", billing_day: c.billing_day === null ? "" : String(c.billing_day),
   };
   const picked: Picked = Object.fromEntries(detail.enrollment.map((e) => [e.modalityId, e.instructorId ?? ""]));
 
@@ -59,7 +59,7 @@ export function DataTab({ detail, enrolled }: { detail: ClientDetail; enrolled: 
 
   return (
     <View style={{ gap: 16 }}>
-      <ClientForm key={c.id} initial={initial} picked={picked} modalities={choices} canEditModalities={isAdmin} canReassign={isAdmin} submitLabel="Salvar" onSubmit={save}>
+      <ClientForm key={c.id} initial={initial} picked={picked} modalities={choices} canEditModalities={isAdmin} canReassign={isAdmin} canEditBilling={isAdmin} submitLabel="Salvar" onSubmit={save}>
         <Card style={{ gap: 18 }}>
           <TagList title="Doenças" items={lists.diseases} onChange={setList("diseases")} placeholder="Adicionar doença" />
           <TagList title="Cirurgias" items={lists.surgeries} onChange={setList("surgeries")} placeholder="Adicionar cirurgia" />

@@ -1,5 +1,5 @@
 import type { ClientInput, EnrollmentInput } from "@fluxo/api";
-import { MARITAL_OPTIONS, SEX_OPTIONS } from "@fluxo/copy";
+import { MARITAL_OPTIONS, SEX_OPTIONS, paymentCopy } from "@fluxo/copy";
 import { maskPhone } from "@fluxo/domain";
 import { useState } from "react";
 import { Pressable, Switch, View } from "react-native";
@@ -15,9 +15,9 @@ import { useTheme } from "@/ui/theme";
 import type { ModalityKey } from "@fluxo/forms";
 
 /** The form's values. Empty means empty string here; `toInput` turns them into the nulls the API expects. */
-export type ClientValues = { document: string; name: string; email: string; phone: string; emergency_contact_name: string; emergency_contact_phone: string; date_of_birth: string; sex: string; marital_status: string; city: string; profession: string; workplace: string; children: string; parents: string };
+export type ClientValues = { document: string; name: string; email: string; phone: string; emergency_contact_name: string; emergency_contact_phone: string; date_of_birth: string; sex: string; marital_status: string; city: string; profession: string; workplace: string; children: string; parents: string; billing_day: string };
 
-export const EMPTY_CLIENT: ClientValues = { document: "", name: "", email: "", phone: "", emergency_contact_name: "", emergency_contact_phone: "", date_of_birth: "", sex: "", marital_status: "", city: "", profession: "", workplace: "", children: "", parents: "" };
+export const EMPTY_CLIENT: ClientValues = { document: "", name: "", email: "", phone: "", emergency_contact_name: "", emergency_contact_phone: "", date_of_birth: "", sex: "", marital_status: "", city: "", profession: "", workplace: "", children: "", parents: "", billing_day: "" };
 
 /** A modality the client can be enrolled in, with the people who teach it (for the responsible instructor). */
 export type ModalityChoice = { id: string; key: ModalityKey; name: string; instructors: { id: string; name: string }[] };
@@ -33,6 +33,7 @@ export function toInput(v: ClientValues): ClientInput {
     emergency_contact_phone: orNull(v.emergency_contact_phone), date_of_birth: orNull(v.date_of_birth), sex: orNull(v.sex) as ClientInput["sex"],
     marital_status: orNull(v.marital_status) as ClientInput["marital_status"], city: orNull(v.city), profession: orNull(v.profession), workplace: orNull(v.workplace),
     children: orNull(v.children), parents: orNull(v.parents),
+    billing_day: v.billing_day.trim() === "" ? null : Number(v.billing_day.trim()),
   };
 }
 
@@ -42,7 +43,7 @@ export const toEnrollments = (picked: Picked): EnrollmentInput[] => Object.entri
  * Dados pessoais, shared by "Novo cliente" and the Dados tab. `onSubmit` returns an error message or nothing.
  * Saving is a real submit: the button shows a pending state, nothing else waits.
  */
-export function ClientForm({ initial, picked: initialPicked, modalities, canEditModalities, canReassign, submitLabel, onSubmit, children }: {
+export function ClientForm({ initial, picked: initialPicked, modalities, canEditModalities, canReassign, canEditBilling, submitLabel, onSubmit, children }: {
   initial: ClientValues;
   picked: Picked;
   /** The modalities this person may enroll the client in. */
@@ -51,6 +52,8 @@ export function ClientForm({ initial, picked: initialPicked, modalities, canEdit
   canEditModalities: boolean;
   /** Only admins choose who is responsible; an instructor enrolling a client is the responsible one. */
   canReassign: boolean;
+  /** Anyone registering a client sets the payment day; afterwards only admins move it (a database rule). */
+  canEditBilling: boolean;
   submitLabel: string;
   onSubmit: (values: ClientValues, picked: Picked) => Promise<string | void>;
   /** Extra sections saved together with the form (the history lists). */
@@ -137,6 +140,20 @@ export function ClientForm({ initial, picked: initialPicked, modalities, canEdit
             <Text variant="small" color="ink2">Apenas administradores alteram as modalidades.</Text>
           </View>
         )}
+      </Card>
+
+      <Card style={{ gap: 14 }}>
+        <Text variant="h3">Pagamento</Text>
+        <TextField
+          label={paymentCopy.billingDay}
+          help={canEditBilling ? paymentCopy.billingDayHelp : "Apenas administradores alteram o dia do pagamento."}
+          value={v.billing_day}
+          onChangeText={(t) => set("billing_day")(t.replace(/\D/g, "").slice(0, 2))}
+          keyboardType="number-pad"
+          maxLength={2}
+          editable={canEditBilling}
+          placeholder="Ex.: 10"
+        />
       </Card>
 
       <Card style={{ gap: 14 }}>
